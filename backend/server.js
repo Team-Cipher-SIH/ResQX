@@ -5,6 +5,7 @@ const connectDB = require("./config/db");
 
 // const publicRoutes = require("./routes/publicRoutes"); // TODO: add back once public dashboard routes are built
 const incidentRoutes = require("./routes/incidentRoutes");
+const reliefCampRoutes = require("./routes/reliefCampRoutes");
 
 const app = express();
 
@@ -16,7 +17,7 @@ app.use(express.json());
 // Routes
 // app.use("/api/public", publicRoutes); // TODO: uncomment when publicRoutes.js exists
 app.use("/api/incidents", incidentRoutes);
-
+app.use("/api/relief-camps", reliefCampRoutes);
 app.get("/", (req, res) => {
   res.send("ResQX backend is running");
 });
