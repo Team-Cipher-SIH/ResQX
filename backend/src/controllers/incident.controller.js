@@ -1,4 +1,4 @@
-const Incident = require("../models/Incident");
+const Incident = require("../models/incident.model");
 const { calculatePriorityScore } = require("../utils/priorityScore");
 
 // POST /api/incidents/report
@@ -31,7 +31,7 @@ const createIncident = async (req, res) => {
       state,
       district,
       mediaUrls: mediaUrls || [],
-      reportedBy: req.body.reportedBy || null,
+      reportedBy: req.user._id,
     });
 
     res.status(201).json({ success: true, message: "Incident reported successfully", data: incident });
@@ -81,7 +81,7 @@ const verifyIncident = async (req, res) => {
 
     incident.status = "verified";
     incident.priorityScore = priorityScore;
-    incident.verifiedBy = req.body.verifiedBy || null;
+    incident.verifiedBy = req.user._id;
 
     await incident.save();
 

@@ -1,4 +1,4 @@
-const Alert = require("../models/Alert");
+const Alert = require("../models/alert.model");
 
 // POST /api/alerts
 const createAlert = async (req, res) => {
@@ -17,7 +17,7 @@ const createAlert = async (req, res) => {
       affectedStates: affectedStates || [],
       affectedDistricts: affectedDistricts || [],
       endTime: endTime || null,
-      issuedBy: req.body.issuedBy || null,
+      issuedBy: req.user._id,
     });
 
     res.status(201).json({ success: true, message: "Alert created successfully", data: alert });
