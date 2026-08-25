@@ -1,4 +1,3 @@
-
 const mongoose = require("mongoose");
 
 const incidentSchema = new mongoose.Schema(
@@ -17,10 +16,20 @@ const incidentSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["reported", "verified", "assigned", "in_progress", "resolved", "closed"],
+      enum: [
+        "reported",
+        "verified",
+        "assigned",
+        "in_progress",
+        "resolved",
+        "closed",
+      ],
       default: "reported",
     },
-
+    isSOS: {
+      type: Boolean,
+      default: false,
+    },
     location: {
       type: { type: String, enum: ["Point"], default: "Point" },
       coordinates: { type: [Number], required: true },
@@ -31,12 +40,24 @@ const incidentSchema = new mongoose.Schema(
 
     mediaUrls: [{ type: String }],
     reportedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-    verifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
-    assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
-    assignedDepartment: { type: mongoose.Schema.Types.ObjectId, ref: "Department", default: null },
+    verifiedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    assignedTo: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    assignedDepartment: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Department",
+      default: null,
+    },
     priorityScore: { type: Number, default: 0 },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 incidentSchema.index({ location: "2dsphere" });
