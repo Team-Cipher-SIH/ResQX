@@ -74,4 +74,38 @@ const deactivateAlert = async (req, res) => {
   }
 };
 
-module.exports = { createAlert, getAlerts, deactivateAlert };
+// GET /api/alerts/nearby?state=&district=
+// Returns active alerts relevant to the citizen's location:
+// alerts specifically targeting their state/district, plus nationwide
+// alerts (ones with no affectedStates/affectedDistricts specified).
+const getNearbyAlerts = async (req, res) => {
+  try {
+    const { state, district } = req.query;
+
+    if (!state) {
+      return res.status(400).json({ success: false, message: "state is required" });
+    }
+
+    const locationFilter = {
+      $or: [
+        { affectedStates: { $size: 0 } },        // nationwide alerts
+        { affectedStates: state },
+      ],
+    };
+
+    if (district) {
+      locationFilter.$or.push({ affectedDistricts: district });
+    }
+
+    const alerts = await Alert.find({
+      isActive: true,
+      ...locationFilter,
+    }).sort({ severity: -1, createdAt: -1 });
+
+    res.status(200).json({ success: true, count: alerts.length, data: alerts });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Failed to fetch nearby alerts", error: err.message });
+  }
+};
+
+module.exports = { createAlert, getAlerts, deactivateAlert, getNearbyAlerts };

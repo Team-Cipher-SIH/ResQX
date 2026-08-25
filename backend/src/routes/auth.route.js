@@ -8,6 +8,8 @@ const {
   logout,
   refreshAccessToken,
   updateUserRole,
+  getProfile,
+  updateProfile,
 } = require("../controllers/auth.controller");
 
 router.post("/register", register);
@@ -15,6 +17,8 @@ router.post("/login", login);
 router.get("/me", protect, (req, res) => {
   res.json(req.user);
 });
+router.get("/profile", protect, getProfile);
+router.patch("/profile", protect, updateProfile);
 router.get(
   "/authority-only",
   protect,

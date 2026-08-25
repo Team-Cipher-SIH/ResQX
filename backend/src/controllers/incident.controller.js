@@ -4,12 +4,39 @@ const { calculatePriorityScore } = require("../utils/priorityScore");
 // POST /api/incidents/report
 const createIncident = async (req, res) => {
   try {
-    const { title, description, type, severity, coordinates, address, state, district, mediaUrls } = req.body;
-
-    if (!title || !description || !type || !coordinates || !state || !district) {
+    let {
+      title,
+      description,
+      type,
+      severity,
+      coordinates,
+      address,
+      state,
+      district,
+    } = req.body;
+    // form-data se coordinates string ban ke aata hai, use parse karna padega
+    if (typeof coordinates === "string") {
+      try {
+        coordinates = JSON.parse(coordinates);
+      } catch (e) {
+        return res.status(400).json({
+          success: false,
+          message: "coordinates must be a valid JSON array",
+        });
+      }
+    }
+    if (
+      !title ||
+      !description ||
+      !type ||
+      !coordinates ||
+      !state ||
+      !district
+    ) {
       return res.status(400).json({
         success: false,
-        message: "title, description, type, coordinates, state, and district are required",
+        message:
+          "title, description, type, coordinates, state, and district are required",
       });
     }
 
@@ -19,6 +46,9 @@ const createIncident = async (req, res) => {
         message: "coordinates must be an array of [longitude, latitude]",
       });
     }
+
+    // Agar image upload hui hai, uska Cloudinary URL nikal lo
+    const mediaUrls = req.file ? [req.file.path] : [];
 
     const incident = await Incident.create({
       title,
@@ -30,13 +60,21 @@ const createIncident = async (req, res) => {
       address,
       state,
       district,
-      mediaUrls: mediaUrls || [],
+      mediaUrls,
       reportedBy: req.user._id,
     });
 
-    res.status(201).json({ success: true, message: "Incident reported successfully", data: incident });
+    res.status(201).json({
+      success: true,
+      message: "Incident reported successfully",
+      data: incident,
+    });
   } catch (err) {
-    res.status(500).json({ success: false, message: "Failed to report incident", error: err.message });
+    res.status(500).json({
+      success: false,
+      message: "Failed to report incident",
+      error: err.message,
+    });
   }
 };
 
@@ -52,11 +90,39 @@ const getIncidents = async (req, res) => {
     if (type) filter.type = type;
     if (severity) filter.severity = severity;
 
-    const incidents = await Incident.find(filter).sort({ createdAt: -1 }).limit(200);
+    const incidents = await Incident.find(filter)
+      .sort({ createdAt: -1 })
+      .limit(200);
 
-    res.status(200).json({ success: true, count: incidents.length, data: incidents });
+    res
+      .status(200)
+      .json({ success: true, count: incidents.length, data: incidents });
   } catch (err) {
-    res.status(500).json({ success: false, message: "Failed to fetch incidents", error: err.message });
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch incidents",
+      error: err.message,
+    });
+  }
+};
+
+// GET /api/incidents/my-reports
+// Returns only the incidents reported by the currently logged-in user.
+const getMyIncidents = async (req, res) => {
+  try {
+    const incidents = await Incident.find({ reportedBy: req.user._id }).sort({
+      createdAt: -1,
+    });
+
+    res
+      .status(200)
+      .json({ success: true, count: incidents.length, data: incidents });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch your incidents",
+      error: err.message,
+    });
   }
 };
 
@@ -67,7 +133,9 @@ const verifyIncident = async (req, res) => {
 
     const incident = await Incident.findById(id);
     if (!incident) {
-      return res.status(404).json({ success: false, message: "Incident not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Incident not found" });
     }
 
     if (incident.status !== "reported") {
@@ -77,7 +145,10 @@ const verifyIncident = async (req, res) => {
       });
     }
 
-    const priorityScore = calculatePriorityScore(incident.severity, incident.createdAt);
+    const priorityScore = calculatePriorityScore(
+      incident.severity,
+      incident.createdAt,
+    );
 
     incident.status = "verified";
     incident.priorityScore = priorityScore;
@@ -85,9 +156,17 @@ const verifyIncident = async (req, res) => {
 
     await incident.save();
 
-    res.status(200).json({ success: true, message: "Incident verified successfully", data: incident });
+    res.status(200).json({
+      success: true,
+      message: "Incident verified successfully",
+      data: incident,
+    });
   } catch (err) {
-    res.status(500).json({ success: false, message: "Failed to verify incident", error: err.message });
+    res.status(500).json({
+      success: false,
+      message: "Failed to verify incident",
+      error: err.message,
+    });
   }
 };
 
@@ -103,13 +182,16 @@ const assignIncident = async (req, res) => {
     if (!assignedTo && !assignedDepartment) {
       return res.status(400).json({
         success: false,
-        message: "At least one of assignedTo (field responder) or assignedDepartment is required",
+        message:
+          "At least one of assignedTo (field responder) or assignedDepartment is required",
       });
     }
 
     const incident = await Incident.findById(id);
     if (!incident) {
-      return res.status(404).json({ success: false, message: "Incident not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Incident not found" });
     }
 
     if (incident.status !== "verified") {
@@ -125,10 +207,73 @@ const assignIncident = async (req, res) => {
 
     await incident.save();
 
-    res.status(200).json({ success: true, message: "Incident assigned successfully", data: incident });
+    res.status(200).json({
+      success: true,
+      message: "Incident assigned successfully",
+      data: incident,
+    });
   } catch (err) {
-    res.status(500).json({ success: false, message: "Failed to assign incident", error: err.message });
+    res.status(500).json({
+      success: false,
+      message: "Failed to assign incident",
+      error: err.message,
+    });
   }
 };
 
-module.exports = { createIncident, getIncidents, verifyIncident, assignIncident };
+// @desc   Quick SOS alert — minimal info, auto-filled details, high severity
+// @route  POST /api/incidents/sos
+const createSOS = async (req, res) => {
+  try {
+    const { coordinates, type } = req.body;
+
+    if (!coordinates) {
+      return res.status(400).json({
+        success: false,
+        message: "coordinates are required for SOS",
+      });
+    }
+
+    if (!Array.isArray(coordinates) || coordinates.length !== 2) {
+      return res.status(400).json({
+        success: false,
+        message: "coordinates must be an array of [longitude, latitude]",
+      });
+    }
+
+    const incident = await Incident.create({
+      title: "SOS Emergency Alert",
+      description:
+        "Emergency SOS triggered by citizen. Immediate attention required.",
+      type: type || "other",
+      severity: "high", // SOS hamesha high priority
+      status: "reported",
+      location: { type: "Point", coordinates },
+      state: req.body.state || "Unknown",
+      district: req.body.district || "Unknown",
+      isSOS: true,
+      reportedBy: req.user._id,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "SOS alert sent successfully. Help is on the way.",
+      data: incident,
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to send SOS alert",
+      error: err.message,
+    });
+  }
+};
+
+module.exports = {
+  createIncident,
+  getIncidents,
+  verifyIncident,
+  assignIncident,
+  getMyIncidents,
+  createSOS,
+};
