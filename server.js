@@ -16,6 +16,7 @@ mongoose.connect(process.env.MONGO_URI)
 
 // Routes
 app.use('/api/entities', require('./routes/entityRoutes'));
+app.use('/api/contacts', require('./routes/contactRoutes'));
 
 // Basic Test Route
 app.get('/', (req, res) => {
