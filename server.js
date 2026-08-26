@@ -15,13 +15,14 @@ mongoose.connect(process.env.MONGO_URI)
   .catch((err) => console.log("DB Connection Error: ", err));
 
 // Routes
+app.use('/api/entities', require('./routes/entityRoutes'));
 app.use('/api/contacts', require('./routes/contactRoutes'));
 
 // Basic Test Route
 app.get('/', (req, res) => {
-  res.send("Cipher Disaster Management API is running...");
+  res.send("Responder Directory API is running...");
 });
 
 // Dynamic Port Assignment
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
