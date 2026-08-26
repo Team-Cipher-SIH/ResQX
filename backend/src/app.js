@@ -5,6 +5,8 @@ const alertRoutes = require("./routes/alert.route.js");
 const shelterRouter = require("./routes/shelter.route");
 const helpPostRouter = require("./routes/helppost.route");
 const reliefCampRoutes = require("./routes/reliefCampRoutes.js"); 
+const analyticsRoutes = require("./routes/analytics.route.js");
+
 const app=express();
 
 const cors = require("cors");
@@ -18,6 +20,7 @@ app.use("/api/alerts", alertRoutes);
 app.use("/api/shelters", shelterRouter);
 app.use("/api/help-posts", helpPostRouter);
 app.use("/api/reliefCamps", reliefCampRoutes);
+app.use("/api/analytics", analyticsRoutes);
 
 app.get("/",(req,res)=>{
     res.send("server is running");
