@@ -90,7 +90,11 @@ const getIncidents = async (req, res) => {
     if (type) filter.type = type;
     if (severity) filter.severity = severity;
 
-    const incidents = await Incident.find(filter)
+    // Jurisdiction filter hamesha override karega query params ko —
+    // security ke liye, taaki koi apni jurisdiction se bahar ka data na dekh paaye
+    const finalFilter = { ...filter, ...req.jurisdictionFilter };
+
+    const incidents = await Incident.find(finalFilter)
       .sort({ createdAt: -1 })
       .limit(200);
 

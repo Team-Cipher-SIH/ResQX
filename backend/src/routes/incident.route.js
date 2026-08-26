@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { protect, authorize } = require("../middleware/auth.middleware");
+const { protect, authorize, scopeByJurisdiction } = require("../middleware/auth.middleware");
 const upload = require("../middleware/upload.middleware");
 const {
   createIncident,
@@ -14,7 +14,13 @@ const {
 router.post("/sos", protect, createSOS);
 router.post("/report", protect, upload.single("photo"), createIncident);
 router.get("/my-reports", protect, getMyIncidents);
-router.get("/", protect, authorize("authority","admin"), getIncidents);
+router.get(
+  "/",
+  protect,
+  authorize("authority", "admin"),
+  scopeByJurisdiction,
+  getIncidents,
+);
 router.patch(
   "/:id/verify",
   protect,

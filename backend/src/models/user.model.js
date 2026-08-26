@@ -32,6 +32,20 @@ const userSchema = new mongoose.Schema(
       enum: ["citizen", "authority", "admin"],
       default: "citizen",
     },
+    authorityLevel: {
+      type: String,
+      enum: ["state", "district", "field_responder", "department"],
+      default: null,
+    },
+    jurisdiction: {
+      type: String,
+      default: null, // state ka naam ya district ka naam (state/district authorityLevel ke liye)
+    },
+    departmentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Department",
+      default: null, // sirf department authorityLevel ke liye
+    },
   },
   { timestamps: true },
 );
