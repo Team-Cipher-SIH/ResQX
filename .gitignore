@@ -1,0 +1,6 @@
+# Environment & Cache
+sih_venv/
+__pycache__/
+
+# YOLO Weights
+*.pt
