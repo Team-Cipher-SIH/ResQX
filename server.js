@@ -17,10 +17,11 @@ mongoose.connect(process.env.MONGO_URI)
 // Routes
 app.use('/api/entities', require('./routes/entityRoutes'));
 app.use('/api/contacts', require('./routes/contactRoutes'));
+app.use('/api/logs', require('./routes/auditRoutes'));
 
 // Basic Test Route
 app.get('/', (req, res) => {
-  res.send("Responder Directory API is running...");
+  res.send("ResQX Audit Log & Directory Service is running...");
 });
 
 // Dynamic Port Assignment
