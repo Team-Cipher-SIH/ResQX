@@ -16,7 +16,7 @@ const generateRefreshToken = (userId) => {
 
 exports.register = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, role, authorityLevel, jurisdiction, departmentId } = req.body;
 
     // 1. Basic validation
     if (!name || !email || !password) {
@@ -38,13 +38,16 @@ exports.register = async (req, res) => {
       name,
       email,
       password: hashedPassword,
+      role: role || "citizen",
+      authorityLevel: authorityLevel || null,
+      jurisdiction: jurisdiction || null,
+      departmentId: departmentId || null,
     });
 
     // 5. Generate token and respond
     const accessToken = generateAccessToken(user._id, user.role);
     const refreshToken = generateRefreshToken(user._id);
 
-    // refresh token DB mein save karo
     user.refreshToken = refreshToken;
     await user.save();
 
@@ -54,6 +57,8 @@ exports.register = async (req, res) => {
       name: user.name,
       email: user.email,
       role: user.role,
+      authorityLevel: user.authorityLevel,
+      jurisdiction: user.jurisdiction,
       accessToken,
       refreshToken,
     });
