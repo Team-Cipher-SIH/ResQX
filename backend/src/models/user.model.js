@@ -34,20 +34,28 @@ const userSchema = new mongoose.Schema(
     },
     authorityLevel: {
       type: String,
-      enum: ["state", "district", "field_responder", "department"],
+      enum: ["central", "state_admin", "district_admin", "field_responder", "department"],
       default: null,
     },
-    jurisdiction: {
-      type: String,
-      default: null, // state ka naam ya district ka naam (state/district authorityLevel ke liye)
-    },
-    departmentId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Department",
-      default: null, // sirf department authorityLevel ke liye
+    state: { type: String, default: null, trim: true },
+    district: { type: String, default: null, trim: true },
+    department: { type: String, default: null, trim: true },
+    isAvailable: { type: Boolean, default: true },
+    currentLocation: {
+      type: {
+        type: String,
+        enum: ["Point"],
+        default: "Point",
+      },
+      coordinates: {
+        type: [Number],
+        default: [0, 0],
+      },
     },
   },
   { timestamps: true },
 );
+
+userSchema.index({ currentLocation: "2dsphere" });
 
 module.exports = mongoose.model("User", userSchema);

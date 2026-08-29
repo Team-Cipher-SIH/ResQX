@@ -51,10 +51,23 @@ const incidentSchema = new mongoose.Schema(
       default: null,
     },
     assignedDepartment: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Department",
+      type: mongoose.Schema.Types.Mixed,
       default: null,
     },
+    assignedTeam: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "ResponseTeam",
+      default: null,
+    },
+    verifiedAt: { type: Date, default: null },
+    statusHistory: [
+      {
+        status: { type: String, required: true },
+        timestamp: { type: Date, default: Date.now },
+        updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+        note: { type: String, default: "" },
+      },
+    ],
     priorityScore: { type: Number, default: 0 },
   },
   { timestamps: true },

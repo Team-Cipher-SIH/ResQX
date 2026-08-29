@@ -16,7 +16,7 @@ const generateRefreshToken = (userId) => {
 
 exports.register = async (req, res) => {
   try {
-    const { name, email, password, role, authorityLevel, jurisdiction, departmentId } = req.body;
+    const { name, email, password, role, authorityLevel, state, district, department } = req.body;
 
     // 1. Basic validation
     if (!name || !email || !password) {
@@ -33,21 +33,28 @@ exports.register = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
+    let finalAuthorityLevel = authorityLevel;
+    if (role === "authority" && !finalAuthorityLevel) {
+      finalAuthorityLevel = "district_admin";
+    }
+
     // 4. Create user
     const user = await User.create({
       name,
       email,
       password: hashedPassword,
       role: role || "citizen",
-      authorityLevel: authorityLevel || null,
-      jurisdiction: jurisdiction || null,
-      departmentId: departmentId || null,
+      authorityLevel: finalAuthorityLevel,
+      state,
+      district,
+      department
     });
 
     // 5. Generate token and respond
     const accessToken = generateAccessToken(user._id, user.role);
     const refreshToken = generateRefreshToken(user._id);
 
+    // refresh token DB mein save karo
     user.refreshToken = refreshToken;
     await user.save();
 
@@ -58,7 +65,9 @@ exports.register = async (req, res) => {
       email: user.email,
       role: user.role,
       authorityLevel: user.authorityLevel,
-      jurisdiction: user.jurisdiction,
+      state: user.state,
+      district: user.district,
+      department: user.department,
       accessToken,
       refreshToken,
     });
@@ -96,11 +105,15 @@ exports.login = async (req, res) => {
     user.refreshToken = refreshToken;
     await user.save();
 
-   res.status(200).json({
+    res.status(200).json({
       _id: user._id,
       name: user.name,
       email: user.email,
       role: user.role,
+      authorityLevel: user.authorityLevel,
+      state: user.state,
+      district: user.district,
+      department: user.department,
       accessToken,
       refreshToken,
     });
@@ -126,12 +139,17 @@ exports.logout = async (req, res) => {
 exports.updateUserRole = async (req, res) => {
   try {
     const { userId } = req.params;
-    const { role } = req.body;
+    const { role, authorityLevel, state, district, department } = req.body;
 
     // Validate role value
     const allowedRoles = ["citizen", "authority", "admin"];
-    if (!allowedRoles.includes(role)) {
+    if (role && !allowedRoles.includes(role)) {
       return res.status(400).json({ message: "Invalid role" });
+    }
+
+    const allowedLevels = ["central", "state_admin", "district_admin", "field_responder", "department"];
+    if (authorityLevel && !allowedLevels.includes(authorityLevel)) {
+      return res.status(400).json({ message: "Invalid authority level" });
     }
 
     const user = await User.findById(userId);
@@ -139,15 +157,24 @@ exports.updateUserRole = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    user.role = role;
+    if (role !== undefined) user.role = role;
+    if (authorityLevel !== undefined) user.authorityLevel = authorityLevel;
+    if (state !== undefined) user.state = state;
+    if (district !== undefined) user.district = district;
+    if (department !== undefined) user.department = department;
+
     await user.save();
 
     res.status(200).json({
-      message: `User role updated to ${role}`,
+      message: "User role/authority updated successfully",
       _id: user._id,
       name: user.name,
       email: user.email,
       role: user.role,
+      authorityLevel: user.authorityLevel,
+      state: user.state,
+      district: user.district,
+      department: user.department,
     });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
@@ -193,7 +220,7 @@ exports.getProfile = async (req, res) => {
 // @route  PATCH /api/auth/profile
 exports.updateProfile = async (req, res) => {
   try {
-    const { name, phone, address } = req.body;
+    const { name, phone, address, department, isAvailable } = req.body;
 
     const user = await User.findById(req.user._id);
     if (!user) {
@@ -204,6 +231,8 @@ exports.updateProfile = async (req, res) => {
     if (name !== undefined) user.name = name;
     if (phone !== undefined) user.phone = phone;
     if (address !== undefined) user.address = address;
+    if (department !== undefined) user.department = department;
+    if (isAvailable !== undefined) user.isAvailable = isAvailable;
 
     await user.save();
 
@@ -215,6 +244,8 @@ exports.updateProfile = async (req, res) => {
       phone: user.phone,
       address: user.address,
       role: user.role,
+      department: user.department,
+      isAvailable: user.isAvailable,
     });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });

@@ -37,35 +37,3 @@ exports.authorize = (...allowedRoles) => {
     next();
   };
 };
-
-exports.scopeByJurisdiction = (req, res, next) => {
-  const user = req.user;
-
-  if (user.role === "admin") {
-    req.jurisdictionFilter = {};
-    return next();
-  }
-
-  if (user.role === "authority") {
-    switch (user.authorityLevel) {
-      case "state":
-        req.jurisdictionFilter = { state: user.jurisdiction };
-        break;
-      case "district":
-        req.jurisdictionFilter = { district: user.jurisdiction };
-        break;
-      case "field_responder":
-        req.jurisdictionFilter = { assignedTo: user._id };
-        break;
-      case "department":
-        req.jurisdictionFilter = { assignedDepartment: user.departmentId };
-        break;
-      default:
-        req.jurisdictionFilter = { _id: null };
-    }
-    return next();
-  }
-
-  req.jurisdictionFilter = { _id: null };
-  next();
-};
