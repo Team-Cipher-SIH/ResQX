@@ -2,23 +2,25 @@
 
 > **Detect. Respond. Protect.**
 
-**ResQtech** is a smart, full-stack disaster management and emergency response platform built for **Smart India Hackathon (SIH)**.
+**ResQtech** is a smart disaster management and emergency response platform built for **Smart India Hackathon (SIH)**.
 
-It connects **Citizens, Government Authorities, and Field Responders** on a unified platform for real-time incident reporting, response coordination, shelter management, and disaster monitoring.
+It connects **Citizens, Government Authorities, and Field Responders** on a unified platform for incident reporting, real-time coordination, shelter discovery, resource management, and emergency response.
 
 ---
 
-## 🌐 Overview
+## 🎯 Problem
 
-ResQtech provides three interconnected portals:
+During disasters, emergency information is often fragmented between citizens, authorities, and field teams. This can lead to:
 
-| Portal                           | Purpose                                                               |
-| -------------------------------- | --------------------------------------------------------------------- |
-| 👤 **Citizen Portal**            | Report incidents, view the disaster map & find nearby shelters        |
-| 🏛️ **Authority Command Center** | Verify incidents, prioritize cases, dispatch teams & manage resources |
-| 🚑 **Responder Dashboard**       | View assigned incidents and update field response status              |
+* Delayed incident reporting
+* Poor coordination between departments
+* Difficulty prioritizing emergencies
+* Lack of real-time situational awareness
+* Difficulty locating nearby shelters and resources
 
-### 🔄 Response Workflow
+## 💡 Our Solution
+
+ResQtech creates a single platform where:
 
 ```text
 👤 Citizen
@@ -29,97 +31,175 @@ ResQtech provides three interconnected portals:
     ▼
 🏛️ Authority
     │
-    ├── 🔍 Verify
-    ├── 🧠 Prioritize
-    └── 🚑 Dispatch
-             │
-             ▼
-       👨‍🚒 Responder
-             │
-             ▼
-       📊 Status Update
-             │
-             ▼
-          ✅ Resolved
+    ├── Verify
+    ├── Prioritize
+    └── Dispatch
+            │
+            ▼
+       🚑 Responder
+            │
+            ▼
+       ✅ Resolve
 ```
 
 ---
 
-## ✨ Key Features
+# ✨ Key Features
 
-* 🚨 **Real-time Incident Reporting** with geolocation
-* 🗺️ **Live Disaster Map** using React-Leaflet
-* 🧠 **Incident Triage & Priority Scoring**
-* 🏛️ **Jurisdiction-aware Authority Dashboard**
-* 🚑 **Response Team & Dispatch Management**
-* 🏕️ **Shelter & Relief Camp Management**
-* 📦 **Relief Supply Inventory Tracking**
-* 📢 **Public Emergency Alerts**
-* 🔐 **JWT Authentication & Role-Based Access Control**
-* 📍 **Nearby Shelter Discovery**
+### 👤 Citizen Portal
+
+* 🚨 Real-time incident reporting
+* 📍 Automatic geolocation
+* 🗺️ Live disaster map
+* 🏕️ Nearby shelter discovery
+* 📢 Emergency alerts
+* 💬 AI assistant for safety guidance
+
+### 🏛️ Authority Command Center
+
+* 🔍 Incident verification
+* 🧠 Incident prioritization
+* 🚑 Responder dispatch
+* 📊 Disaster monitoring
+* 📦 Resource management
+* 🏕️ Shelter management
+* 🔐 Jurisdiction-based access
+
+### 🚑 Responder Dashboard
+
+* 📋 Assigned incidents
+* 📍 Incident location
+* 📊 Response status updates
+* ✅ Resolution tracking
 
 ---
 
-## 🏛️ Jurisdiction Model
+# 🗺️ Real-Time Disaster Map
 
-Authorities operate under a three-level access hierarchy:
+Currently, disaster markers are generated from **citizen-reported incidents**.
 
 ```text
-             🇮🇳 NATIONAL / CENTRAL
-                      │
-             ┌────────┴────────┐
-             ▼                 ▼
-        🏛️ STATE ADMIN     🏛️ STATE ADMIN
-             │
-        ┌────┴────┐
-        ▼         ▼
-   📍 DISTRICT  📍 DISTRICT
-      ADMIN        ADMIN
+👤 Citizen
+     │
+     ▼
+🚨 Incident Report
+     │
+     ▼
+🗄️ MongoDB
+     │
+     ▼
+📡 REST API
+     │
+     ▼
+🗺️ React-Leaflet Map
+     │
+     ▼
+🔌 Socket.IO
+     │
+     ▼
+⚡ Real-Time Updates
 ```
 
-| Level             | Access                         |
-| ----------------- | ------------------------------ |
-| 🇮🇳 **National**    | All states & districts         |
-| 🏛️ **State**      | Assigned state & its districts |
-| 📍 **District**   | Assigned district only         |
+Incidents are stored with GeoJSON coordinates:
 
-> 🔐 Jurisdiction restrictions are enforced **server-side through API middleware**.
+```json
+{
+  "location": {
+    "type": "Point",
+    "coordinates": [longitude, latitude]
+  }
+}
+```
+
+Socket.IO events such as `new-incident` and `incident-updated` allow connected clients to receive updates without refreshing the page.
 
 ---
 
-## 🤖 AI Engine — In Development
+# 🏛️ Jurisdiction Model
 
-ResQtech includes a separate **Python-based AI engine** for future intelligent disaster-management capabilities.
-
-### Planned Features
-
-* 🌊 Flood Risk Prediction
-* 🤖 RAG-based Disaster Assistant
-* 📊 Intelligent Disaster Analysis
-
-> 🚧 **Current Status:** The AI engine is under development and is **not yet integrated** with the main Node.js backend or frontend.
-
-### Planned Architecture
+Authorities have hierarchical access:
 
 ```text
-             RESQTECH PLATFORM
+🇮🇳 NATIONAL
+     │
+     ▼
+🏛️ STATE
+     │
+     ▼
+📍 DISTRICT
+```
+
+| Level         | Access                     |
+| ------------- | -------------------------- |
+| 🇮🇳 National | All states & districts     |
+| 🏛️ State     | Assigned state & districts |
+| 📍 District   | Assigned district          |
+
+> 🔐 Access restrictions are enforced server-side through API middleware.
+
+---
+
+# 🤖 AI Layer — Future Development
+
+ResQtech is designed to support an autonomous AI disaster-detection layer.
+
+### Planned Pipeline
+
+```text
+🌦️ Weather Data
+🌊 Water-Level Data
+🌍 Seismic Data
+🛰️ Satellite / Historical Data
+          │
+          ▼
+     🤖 AI Engine
+          │
+          ▼
+   ⚠️ Disaster Detected
+       │     │     │
+       ▼     ▼     ▼
+     🗺️    📢    🏛️
+     Map   Alert  Authority
+```
+
+### Planned AI Capabilities
+
+* 🌊 Flood risk prediction
+* 🤖 RAG-based disaster assistant
+* 📊 Intelligent disaster analysis
+* ⚠️ Autonomous disaster detection
+
+> 🚧 **Prototype Status:** Autonomous AI detection is currently under development and is not yet integrated with the current backend.
+> The existing citizen-reporting and real-time incident pipeline works independently.
+
+---
+
+# 🏗️ Architecture
+
+```text
+                 RESQTECH
+                    │
+       ┌────────────┼────────────┐
+       ▼            ▼            ▼
+   👤 Citizen   🏛️ Authority  🚑 Responder
+       │            │            │
+       └────────────┼────────────┘
+                    ▼
+             Node.js + Express
                     │
           ┌─────────┴─────────┐
           ▼                   ▼
-    Node.js Backend      Python AI Engine
+      MongoDB             Socket.IO
           │                   │
-       MongoDB         ┌──────┴──────┐
-                       ▼             ▼
-                  Flood ML        RAG
-                       │             │
-                       └──────┬──────┘
-                              ▼
-                       🚧 Future Integration
+          └─────────┬─────────┘
+                    ▼
+             Future AI Engine
+                 Python
 ```
 
 ---
 
-## 🛠️ Tech Stack
+# 🛠️ Tech Stack
 
 ### Frontend
 
@@ -127,56 +207,54 @@ ResQtech includes a separate **Python-based AI engine** for future intelligent d
 
 ### Backend
 
-`Node.js` • `Express.js` • `MongoDB` • `Mongoose` • `JWT` • `Axios`
+`Node.js` • `Express.js` • `MongoDB` • `Mongoose` • `JWT` • `Socket.IO` • `Axios`
 
-### AI Engine
+### AI
 
 `Python` • `Machine Learning` • `RAG`
 
-### API Testing
+### Testing
 
 `Postman`
 
 ---
 
-## 📁 Project Structure
+# 📁 Project Structure
 
 ```text
 ResQtech/
 │
-├── 📁 backend/
-│   ├── 📁 controllers/
-│   ├── 📁 models/
-│   ├── 📁 routes/
-│   ├── 📁 middleware/
-│   ├── server.js
-│   └── .env.example
+├── backend/
+│   ├── controllers/
+│   ├── models/
+│   ├── routes/
+│   ├── middleware/
+│   └── server.js
 │
-├── 📁 frontend/
-│   └── 📁 src/
-│       ├── 📁 app/
-│       │   ├── 📁 citizen/
-│       │   ├── 📁 authority/
-│       │   └── 📁 responder/
-│       ├── 📁 components/
-│       └── 📁 lib/
+├── frontend/
+│   └── src/
+│       ├── app/
+│       │   ├── citizen/
+│       │   ├── authority/
+│       │   └── responder/
+│       ├── components/
+│       └── lib/
 │
-├── 🚧 📁 ai-engine/
-│   ├── 📁 flood-prediction/
-│   ├── 📁 rag-assistant/
+├── ai-engine/
+│   ├── flood-prediction/
+│   ├── rag-assistant/
 │   └── main.py
 │
-├── 📁 postman/
-├── .gitignore
+├── postman/
 ├── README.md
 └── package.json
 ```
 
 ---
 
-## 🚀 Getting Started
+# 🚀 Getting Started
 
-### Prerequisites
+## Prerequisites
 
 * Node.js `v18+`
 * MongoDB
@@ -214,7 +292,7 @@ http://localhost:3000
 
 ---
 
-## 🔑 Environment Variables
+# 🔑 Environment Variables
 
 Create `.env` inside `/backend`:
 
@@ -235,7 +313,28 @@ NEXT_PUBLIC_API_URL=https://your-deployed-backend-url/api
 
 ---
 
-## 🌳 Branching Strategy
+# 📊 Prototype Status
+
+| Module               | Status            |
+| -------------------- | ----------------- |
+| Citizen Portal       | ✅ Working         |
+| Authority Portal     | ✅ Working         |
+| Responder Portal     | ✅ Working         |
+| Incident Reporting   | ✅ Working         |
+| Geolocation          | ✅ Working         |
+| Live Disaster Map    | ✅ Working         |
+| Socket.IO Updates    | ✅ Working         |
+| JWT + RBAC           | ✅ Working         |
+| Jurisdiction Control | ✅ Working         |
+| Shelter Management   | 🚧 Prototype      |
+| Resource Management  | 🚧 Prototype      |
+| AI Detection         | 🚧 In Development |
+| Flood Prediction     | 🚧 Planned        |
+| RAG Assistant        | 🚧 In Development |
+
+---
+
+# 🌳 Development
 
 ```text
 main
@@ -249,29 +348,57 @@ main
       └── feature/ai-engine
 ```
 
-* `main` → Stable & demo-ready
-* `dev` → Integration branch
-* `feature/*` → Individual feature development
+* `main` → Stable/demo-ready
+* `dev` → Integration
+* `feature/*` → Individual features
 
 ---
 
-## 👥 Team
+# 👥 Team
 
 ### 🎨 Frontend — 2 Members
 
-UI, dashboards, maps, portals & API integration
+UI, dashboards, maps, portals & API integration.
 
 ### ⚙️ Backend — 4 Members
 
-APIs, database, authentication, authorization, incidents, dispatch & resource management
+APIs, database, authentication, authorization, incidents, dispatch & resource management.
 
 ### 🤖 AI
 
-Separate AI engine currently under development.
+AI engine, flood prediction, RAG and intelligent disaster analysis.
 
 ---
 
-## 🎯 Vision
+# 🔮 Roadmap
+
+```text
+CURRENT
+Citizen Reports
+      │
+      ▼
+Real-Time Platform
+      │
+      ▼
+Authority Coordination
+      │
+      ▼
+Responder Dispatch
+      │
+      ▼
+        🚧
+Future AI Detection
+      │
+      ▼
+Automatic Alerts
+      │
+      ▼
+Intelligent Response
+```
+
+---
+
+# 🎯 Vision
 
 > **During a disaster, every second matters.**
 
@@ -279,14 +406,14 @@ ResQtech aims to make emergency response:
 
 **⚡ Faster • 🎯 Smarter • 🤝 Coordinated • 📊 Data-Driven**
 
-by connecting the people who **report**, **decide**, and **respond** — all through one platform.
+by connecting the people who **report, decide, and respond** through one unified platform.
 
 ---
 
 # 🏆 Built for Smart India Hackathon
 
-## **ResQtech**
+## 🚨 ResQtech
 
 ### *Smart Disaster Management & Emergency Response Platform*
 
-**Detect. Respond. Protect.**
+> **Detect. Respond. Protect.**
