@@ -129,8 +129,8 @@ export default function LiveDisasterMapClient() {
         const responses = await Promise.all(
           activeStatuses.map((status) =>
             fetchFromApi<IncidentResponse>(
-              `${API_ENDPOINTS.INCIDENTS}?status=${status}`
-            )
+                `${API_ENDPOINTS.INCIDENTS_PUBLIC}?status=${status}`
+              )
           )
         );
 

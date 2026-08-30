@@ -681,7 +681,7 @@ export default function CommandMapClient({
     return incidents.filter((i) => i.severity === severityFilter);
   }, [incidents, showIncidents, severityFilter]);
 
-  const criticalCount = useMemo(
+   const criticalCount = useMemo(
     () => incidents.filter((i) => i.severity === 'critical' || i.isSOS).length,
     [incidents]
   );
@@ -690,16 +690,20 @@ export default function CommandMapClient({
     [teams]
   );
 
+  const [scrollZoomEnabled, setScrollZoomEnabled] = useState(false);
+
   return (
     <div
       className={`relative w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-900 shadow-sm ${className}`}
       style={{ height }}
+      onMouseEnter={() => setScrollZoomEnabled(true)}
+      onMouseLeave={() => setScrollZoomEnabled(false)}
     >
       {/* ─── Map Container ─── */}
       <MapContainer
         center={center}
         zoom={zoom}
-        scrollWheelZoom={true}
+        scrollWheelZoom={scrollZoomEnabled}
         className="h-full w-full z-0"
         attributionControl={false}
       >

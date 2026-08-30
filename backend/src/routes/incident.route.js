@@ -7,6 +7,7 @@ const {
   createIncident,
   getIncidents,
   verifyIncident,
+  getPublicIncidents,
   assignIncident,
   getMyIncidents,
   createSOS,
@@ -19,6 +20,7 @@ router.post("/sos", protect, createSOS);
 router.post("/report", protect, upload.single("photo"), createIncident);
 router.get("/my-reports", protect, getMyIncidents);
 router.get("/stats", protect, authorize("authority", "admin"), attachJurisdictionFilter, getIncidentStats);
+router.get("/public", getPublicIncidents);
 router.get("/", protect, authorize("authority", "admin"), attachJurisdictionFilter, getIncidents);
 router.get("/:id", protect, getIncidentById);
 router.patch(

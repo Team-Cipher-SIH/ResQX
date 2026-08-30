@@ -741,10 +741,15 @@ export default function LoginForm({ role }: LoginFormProps) {
                     </Link>
                   </>
                 ) : (
-                  <div className="flex items-center justify-center gap-2 text-xs text-slate-400">
-                    <ShieldCheck className="h-4 w-4 text-blue-500" />
-                    Authority accounts are provisioned by administrators.
-                  </div>
+                  <>
+                    <span>New authority? </span>
+                    <Link
+                      href="/authority/register"
+                      className="font-semibold text-blue-600 transition hover:text-blue-700"
+                    >
+                      Register here →
+                    </Link>
+                  </>
                 )}
 
               </div>

@@ -154,6 +154,7 @@ export default function CitizenMapClient({
 
   // Geolocation state
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+  const [userLocationName, setUserLocationName] = useState<string | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const [mapCenter, setMapCenter] = useState<[number, number]>(DEFAULT_CENTER);
   const [mapZoom, setMapZoom] = useState<number>(DEFAULT_ZOOM);
@@ -168,31 +169,52 @@ export default function CitizenMapClient({
   const [selectedShelter, setSelectedShelter] = useState<CitizenShelter | null>(null);
 
   // Locate User
-  const handleLocateMe = () => {
-    if (!navigator.geolocation) {
-      alert('Geolocation is not supported by your browser.');
-      return;
-    }
-
-    setIsLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const coords: [number, number] = [position.coords.latitude, position.coords.longitude];
-        setUserLocation(coords);
-        setMapCenter(coords);
-        setMapZoom(14);
-        setIsLocating(false);
-      },
-      (error) => {
-        setIsLocating(false);
-        console.warn('Geolocation warning:', error.message);
-        // Fallback to default smoothly without breaking
-        setMapCenter(DEFAULT_CENTER);
-        setMapZoom(DEFAULT_ZOOM);
-      },
-      { enableHighAccuracy: true, timeout: 8000 }
+  const reverseGeocode = async (lat: number, lng: number) => {
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=14&addressdetails=1`,
+      { headers: { 'Accept-Language': 'en' } }
     );
-  };
+    const data = await res.json();
+    if (data && data.address) {
+      const addr = data.address;
+      const name =
+        addr.suburb || addr.neighbourhood || addr.village || addr.town || addr.city_district || addr.city || '';
+      const district = addr.county || addr.city || '';
+      const label = [name, district].filter(Boolean).join(', ');
+      setUserLocationName(label || data.display_name || null);
+    }
+  } catch (err) {
+    console.warn('Reverse geocoding failed:', err);
+    setUserLocationName(null);
+  }
+   };
+
+ const handleLocateMe = () => {
+  if (!navigator.geolocation) {
+    alert('Geolocation is not supported by your browser.');
+    return;
+  }
+
+  setIsLocating(true);
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      const coords: [number, number] = [position.coords.latitude, position.coords.longitude];
+      setUserLocation(coords);
+      setMapCenter(coords);
+      setMapZoom(14);
+      setIsLocating(false);
+      reverseGeocode(coords[0], coords[1]); 
+    },
+    (error) => {
+      setIsLocating(false);
+      console.warn('Geolocation warning:', error.message);
+      setMapCenter(DEFAULT_CENTER);
+      setMapZoom(DEFAULT_ZOOM);
+    },
+    { enableHighAccuracy: true, timeout: 8000 }
+  );
+};
 
   // Filtered Incidents
   const filteredIncidents = useMemo(() => {
@@ -390,7 +412,9 @@ export default function CitizenMapClient({
               <Popup className="custom-resqtech-popup" closeButton={false}>
                 <div className="p-2 text-center text-xs">
                   <p className="font-bold text-blue-700">📍 You are here</p>
-                  <p className="text-[10px] text-slate-500 mt-0.5">GPS location active</p>
+                  <p className="text-[10px] text-slate-600 mt-0.5 font-medium">
+                    {userLocationName || 'Locating your area...'}
+                  </p>
                 </div>
               </Popup>
             </Marker>

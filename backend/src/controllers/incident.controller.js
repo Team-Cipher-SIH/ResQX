@@ -775,11 +775,36 @@ const createSOS = async (req, res) => {
       error: err.message,
     });
   }
+};// Public: limited fields, no auth required, for citizen-facing live map
+const getPublicIncidents = async (req, res) => {
+  try {
+    const { status } = req.query;
+    const filter = {};
+
+    if (status) {
+      filter.status = status;
+    }
+
+    const incidents = await Incident.find(filter)
+      .select('title type severity status isSOS location address state district priorityScore createdAt')
+      .limit(200)
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: incidents.length,
+      data: incidents,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Failed to fetch public incidents' });
+  }
 };
+
 
 module.exports = {
   createIncident,
   getIncidents,
+  getPublicIncidents,
   getIncidentById,
   verifyIncident,
   assignIncident,

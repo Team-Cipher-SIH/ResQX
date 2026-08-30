@@ -1,25 +1,33 @@
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import RegisterForm from '@/components/RegisterForm';
+import AuthorityRegisterForm from '@/components/AuthorityRegisterForm';
 
 export const metadata = {
-  title: 'Authority Registration | ResQtech Platform',
-  description: 'Authorized emergency management and first responder officer registration.',
+  title: 'Authority Register | ResQtech Disaster Platform',
+  description:
+    'Register as a disaster-management authority and select your jurisdiction level.',
 };
 
 export default function AuthorityRegisterPage() {
   return (
-    <div className="flex flex-col min-h-screen bg-slate-50 text-slate-800">
+    <div className="flex min-h-screen flex-col bg-slate-50 text-slate-800">
       <Navbar />
 
-      <main className="grow flex items-center justify-center px-4 py-16 relative overflow-hidden">
-        {/* Background Grid and Glow Accent */}
-        <div className="absolute inset-0 bg-grid-pattern opacity-30 pointer-events-none" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-100 h-75 bg-blue-600/5 blur-[120px] rounded-full pointer-events-none" />
+      <main className="relative flex grow items-center justify-center overflow-hidden px-4 py-12 sm:px-6 lg:px-8">
 
-        <div className="relative z-10 w-full max-w-md">
-          <RegisterForm role="authority" />
+        {/* Background grid */}
+        <div className="pointer-events-none absolute inset-0 bg-grid-pattern opacity-30" />
+
+        {/* Blue command glow */}
+        <div className="pointer-events-none absolute left-1/4 top-1/2 h-96 w-96 -translate-x-1/2 -translate-y-1/2 rounded-full bg-blue-500/5 blur-[120px]" />
+
+        <div className="pointer-events-none absolute bottom-0 right-1/4 h-80 w-80 translate-x-1/2 rounded-full bg-blue-600/5 blur-[110px]" />
+
+        {/* IMPORTANT: full width parent */}
+        <div className="relative z-10 w-full max-w-6xl">
+          <AuthorityRegisterForm />
         </div>
+
       </main>
 
       <Footer />

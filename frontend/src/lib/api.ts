@@ -143,10 +143,13 @@ export async function fetchFromApi<T = unknown>(
           return fetchFromApi<T>(endpoint, options, true);
         } else {
           // Token refresh failed -> force logout redirect
-          if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
-            const isAuthority = window.location.pathname.startsWith('/authority') || window.location.pathname.startsWith('/responder');
-            window.location.href = isAuthority ? '/authority/login' : '/citizen/login';
-          }
+         if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+            const publicPaths = ['/'];
+            if (!publicPaths.includes(window.location.pathname)) {
+              const isAuthority = window.location.pathname.startsWith('/authority') || window.location.pathname.startsWith('/responder');
+              window.location.href = isAuthority ? '/authority/login' : '/citizen/login';
+            }
+      }        
         }
       } else {
         // Wait for active refresh to complete
@@ -217,6 +220,7 @@ export const API_ENDPOINTS = {
   REFRESH: '/auth/refresh',
   LOGOUT: '/auth/logout',
   PROFILE: '/auth/profile',
+  INCIDENTS_PUBLIC: '/incidents/public',
 
   // Incidents
   INCIDENTS: '/incidents',
