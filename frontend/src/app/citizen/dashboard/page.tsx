@@ -12,6 +12,7 @@ import ReliefCamps from './components/ReliefCamps';
 import CommunityHelp from './components/CommunityHelp';
 import EmergencyContacts from './components/EmergencyContacts';
 import ProfileCard from './components/ProfileCard';
+import ChatButton from '@/components/AIAssistant/ChatButton';
 
 export default function CitizenDashboard() {
   const [incidentsList, setIncidentsList] = useState<IncidentItem[]>([]);
@@ -84,6 +85,9 @@ export default function CitizenDashboard() {
         {/* 11. Citizen Profile Management */}
         <ProfileCard />
       </div>
+
+      {/* AI Assistant Chat Button */}
+      <ChatButton />
     </main>
   );
 }
