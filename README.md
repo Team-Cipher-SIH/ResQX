@@ -1,202 +1,292 @@
-﻿# Disaster Management Platform — SIH Project
+# 🚨 ResQtech
 
-## Team
-- Frontend: 2 members
-- Backend: 4 members
+> **Detect. Respond. Protect.**
 
-## Structure
-- `/frontend` — public dashboard, login, citizen portal, authority command center
-- `/backend` — Express + MongoDB API
+**ResQtech** is a smart, full-stack disaster management and emergency response platform built for **Smart India Hackathon (SIH)**.
 
-## Setup
-1. cd backend && npm install🚨 ResQtech — Smart Disaster Management Platform
+It connects **Citizens, Government Authorities, and Field Responders** on a unified platform for real-time incident reporting, response coordination, shelter management, and disaster monitoring.
 
-A unified, full-stack disaster response coordination platform connecting citizens, field responders, and government authorities for real-time incident reporting, resource coordination, and emergency response — built for Smart India Hackathon (SIH).
+---
 
-ResQtech enables citizens to report emergencies and locate nearby shelters, while giving disaster-management authorities a jurisdiction-aware command center to triage incidents, dispatch response teams, and monitor relief camps and supply readiness — scoped precisely to their level of responsibility (National / State / District).
+## 🌐 Overview
 
-🧭 Table of Contents
-Overview
-Key Features
-Tech Stack
-Project Structure
-Jurisdiction & Access Model
-Getting Started
-Environment Variables
-API Overview
-Branching Strategy
-Team
-Roadmap
-Overview
+ResQtech provides three interconnected portals:
 
-Disasters demand fast, coordinated action across multiple levels of government and the public. ResQtech bridges that gap with three connected portals:
+| Portal                           | Purpose                                                               |
+| -------------------------------- | --------------------------------------------------------------------- |
+| 👤 **Citizen Portal**            | Report incidents, view the disaster map & find nearby shelters        |
+| 🏛️ **Authority Command Center** | Verify incidents, prioritize cases, dispatch teams & manage resources |
+| 🚑 **Responder Dashboard**       | View assigned incidents and update field response status              |
 
-Portal	Who it's for	What it does
-Citizen Portal	General public	Report incidents, view live hazard map, locate nearby shelters, track personal reports
-Authority Command Center	Government officials (National / State / District)	Monitor incidents, dispatch response teams, manage shelters & supplies — scoped to jurisdiction
-Responder Dashboard	Field response teams	View assigned incidents, update status, coordinate on-ground response
-Key Features
-Citizen-facing
-🆘 Incident reporting with photo/media upload and geolocation
-🗺️ Live disaster map with nearby shelters and active hazards (with reverse-geocoded location naming)
-🏠 Real-time shelter capacity and availability
-📋 Personal incident report tracking
-Authority Command Center
-📊 Jurisdiction-aware dashboards — National, State, and District authorities each see a command center scoped exactly to their responsibility
-🚦 Incident triage-to-dispatch pipeline with auto-priority scoring
-📢 Alert broadcast system for public advisories
-🏕️ Relief camp / shelter management with live occupancy tracking
-📦 Relief supply inventory (water, food, medicine, blankets) with stock-level alerts
-🚑 Response team management and dispatch coordination
-🗺️ Interactive tactical map with incidents, teams, and shelters layered together
-Platform-wide
-🔐 JWT-based authentication with role-based access control (Citizen / Authority / Admin)
-🌍 Three-tier jurisdiction scoping (National → State → District)
-📈 Aggregated analytics via MongoDB aggregation pipelines
-🤖 AI-assisted features (flood risk prediction, nearest-team suggestion, RAG situational assistant) via a dedicated Python/ML microservice
-Tech Stack
+### 🔄 Response Workflow
 
-Frontend
+```text
+👤 Citizen
+    │
+    ▼
+🚨 Report Incident
+    │
+    ▼
+🏛️ Authority
+    │
+    ├── 🔍 Verify
+    ├── 🧠 Prioritize
+    └── 🚑 Dispatch
+             │
+             ▼
+       👨‍🚒 Responder
+             │
+             ▼
+       📊 Status Update
+             │
+             ▼
+          ✅ Resolved
+```
 
-Next.js (App Router, Turbopack)
-TypeScript
-Tailwind CSS
-Leaflet / React-Leaflet (interactive maps)
-React Hook Form + Zod (form validation)
+---
 
-Backend
+## ✨ Key Features
 
-Node.js + Express
-MongoDB + Mongoose
-JWT (jsonwebtoken) for authentication
-bcryptjs for password hashing
+* 🚨 **Real-time Incident Reporting** with geolocation
+* 🗺️ **Live Disaster Map** using React-Leaflet
+* 🧠 **Incident Triage & Priority Scoring**
+* 🏛️ **Jurisdiction-aware Authority Dashboard**
+* 🚑 **Response Team & Dispatch Management**
+* 🏕️ **Shelter & Relief Camp Management**
+* 📦 **Relief Supply Inventory Tracking**
+* 📢 **Public Emergency Alerts**
+* 🔐 **JWT Authentication & Role-Based Access Control**
+* 📍 **Nearby Shelter Discovery**
 
-AI Engine
+---
 
-Python/ML microservice (flood risk prediction, RAG situational assistant) — the Node backend proxies to this service via Axios
+## 🏛️ Jurisdiction Model
 
-Tooling
+Authorities operate under a three-level access hierarchy:
 
-Postman (API testing — collection in /postman)
-Git branching workflow with feature isolation
-Project Structure
-.
-├── backend/                   # Express + MongoDB API
-│   ├── controllers/           # Route handlers (auth, incidents, shelters, dispatches, etc.)
-│   ├── models/                # Mongoose schemas (User, Incident, Shelter, Supply, etc.)
-│   ├── routes/                 # Express route definitions
-│   ├── middleware/             # Auth (JWT) & jurisdiction-scoping middleware
-│   └── server.js               # App entry point
+```text
+             🇮🇳 NATIONAL / CENTRAL
+                      │
+             ┌────────┴────────┐
+             ▼                 ▼
+        🏛️ STATE ADMIN     🏛️ STATE ADMIN
+             │
+        ┌────┴────┐
+        ▼         ▼
+   📍 DISTRICT  📍 DISTRICT
+      ADMIN        ADMIN
+```
+
+| Level             | Access                         |
+| ----------------- | ------------------------------ |
+| 🇮🇳 **National**    | All states & districts         |
+| 🏛️ **State**      | Assigned state & its districts |
+| 📍 **District**   | Assigned district only         |
+
+> 🔐 Jurisdiction restrictions are enforced **server-side through API middleware**.
+
+---
+
+## 🤖 AI Engine — In Development
+
+ResQtech includes a separate **Python-based AI engine** for future intelligent disaster-management capabilities.
+
+### Planned Features
+
+* 🌊 Flood Risk Prediction
+* 🤖 RAG-based Disaster Assistant
+* 📊 Intelligent Disaster Analysis
+
+> 🚧 **Current Status:** The AI engine is under development and is **not yet integrated** with the main Node.js backend or frontend.
+
+### Planned Architecture
+
+```text
+             RESQTECH PLATFORM
+                    │
+          ┌─────────┴─────────┐
+          ▼                   ▼
+    Node.js Backend      Python AI Engine
+          │                   │
+       MongoDB         ┌──────┴──────┐
+                       ▼             ▼
+                  Flood ML        RAG
+                       │             │
+                       └──────┬──────┘
+                              ▼
+                       🚧 Future Integration
+```
+
+---
+
+## 🛠️ Tech Stack
+
+### Frontend
+
+`Next.js` • `TypeScript` • `Tailwind CSS` • `React-Leaflet`
+
+### Backend
+
+`Node.js` • `Express.js` • `MongoDB` • `Mongoose` • `JWT` • `Axios`
+
+### AI Engine
+
+`Python` • `Machine Learning` • `RAG`
+
+### API Testing
+
+`Postman`
+
+---
+
+## 📁 Project Structure
+
+```text
+ResQtech/
 │
-├── frontend/                  # Next.js application
-│   ├── src/app/
-│   │   ├── (public)/            # Home, disaster info, guidelines
-│   │   ├── citizen/             # Citizen login, register, dashboard
-│   │   ├── authority/           # Authority login, register, dashboard, state/district views
-│   │   └── responder/           # Field responder dashboard
-│   ├── src/components/          # Shared UI components (Navbar, maps, forms, dashboards)
-│   └── src/lib/                 # API client, auth helpers, validation schemas
+├── 📁 backend/
+│   ├── 📁 controllers/
+│   ├── 📁 models/
+│   ├── 📁 routes/
+│   ├── 📁 middleware/
+│   ├── server.js
+│   └── .env.example
 │
-├── postman/                   # Postman collection for API testing
+├── 📁 frontend/
+│   └── 📁 src/
+│       ├── 📁 app/
+│       │   ├── 📁 citizen/
+│       │   ├── 📁 authority/
+│       │   └── 📁 responder/
+│       ├── 📁 components/
+│       └── 📁 lib/
+│
+├── 🚧 📁 ai-engine/
+│   ├── 📁 flood-prediction/
+│   ├── 📁 rag-assistant/
+│   └── main.py
+│
+├── 📁 postman/
 ├── .gitignore
-├── package.json
-└── README.md
-Jurisdiction & Access Model
+├── README.md
+└── package.json
+```
 
-Authority accounts operate under a three-tier jurisdiction system, enforced both at the API layer (via middleware-injected MongoDB filters) and reflected in the frontend dashboards:
+---
 
-Level	Scope	Dashboard
-National / Central	Full visibility — all states & districts	/authority/dashboard
-State Admin	Entire assigned state — can view/toggle across all its districts	/authority/state
-District Admin	Locked to a single assigned district	/authority/district
+## 🚀 Getting Started
 
-Jurisdiction is selected at registration (/authority/register) and enforced server-side on every scoped endpoint — a District Admin cannot view or modify data outside their district, and a State Admin cannot escalate to another state, regardless of frontend state.
+### Prerequisites
 
-Getting Started
-Prerequisites
-Node.js (v18+)
-MongoDB (local instance via MongoDB Compass, or MongoDB Atlas for production)
-1. Clone the repository
-bash
-git clone <repo-url>
-cd <repo-folder>
-2. Backend setup
-bash
+* Node.js `v18+`
+* MongoDB
+* Git
+* Postman *(optional)*
+
+### Backend
+
+```bash
 cd backend
 npm install
-cp .env.example .env   # fill in your values — see Environment Variables below
+cp .env.example .env
 npm run dev
+```
 
-Backend runs on http://localhost:5000 by default.
+Runs on:
 
-3. Frontend setup
-bash
+```text
+http://localhost:5000
+```
+
+### Frontend
+
+```bash
 cd frontend
 npm install
 npm run dev
+```
 
-Frontend runs on http://localhost:3000 by default, and proxies /api/* requests to the backend.
+Runs on:
 
-Environment Variables
+```text
+http://localhost:3000
+```
 
-Create a .env file inside /backend (see .env.example for the full template):
+---
 
-env
+## 🔑 Environment Variables
+
+Create `.env` inside `/backend`:
+
+```env
 PORT=5000
 MONGO_URI=your_mongodb_connection_string
 JWT_SECRET=your_jwt_secret
 JWT_REFRESH_SECRET=your_jwt_refresh_secret
+```
 
-For the frontend, if deploying separately from localhost:5000, set:
+For a separately deployed backend:
 
-env
+```env
 NEXT_PUBLIC_API_URL=https://your-deployed-backend-url/api
+```
 
-⚠️ Never commit .env files. They are gitignored by default.
+> ⚠️ Never commit `.env` files or expose secret keys.
 
-API Overview
+---
 
-All endpoints are prefixed with /api. Key resource groups:
+## 🌳 Branching Strategy
 
-Resource	Base path	Notes
-Auth	/auth	Register, login, refresh, profile
-Incidents	/incidents	Report, verify, assign, jurisdiction-scoped listing
-Incidents (public)	/incidents/public	Limited-field public feed for the citizen map
-Shelters	/shelters	CRUD + /shelters/nearby for public proximity search
-Teams	/teams	Response team management
-Dispatches	/dispatches	Incident-to-team dispatch lifecycle
-Alerts	/alerts	Public advisory broadcasts
-Supplies	/supplies	Relief inventory tracking
-Dashboard	/dashboard	Aggregated stats for authority dashboards
+```text
+main
+ │
+ └── dev
+      ├── feature/auth
+      ├── feature/incident-api
+      ├── feature/shelter-management
+      ├── feature/dispatch
+      ├── feature/dashboard
+      └── feature/ai-engine
+```
 
-Full request/response examples are available in the Postman collection under /postman.
+* `main` → Stable & demo-ready
+* `dev` → Integration branch
+* `feature/*` → Individual feature development
 
-Branching Strategy
-main — stable, demo-ready only
-dev — integration branch; all completed features merge here first
-feature/<name> — one branch per feature (e.g. feature/auth, feature/incident-api, feature/jurisdiction-scoping)
+---
 
-Pull requests are used to merge into main for tracked, reviewable releases — particularly before demos and final submission.
+## 👥 Team
 
-Team
-Role	Count
-Frontend	2 members
-Backend	4 members
+### 🎨 Frontend — 2 Members
 
-Backend ownership spans incident triage/dispatch, alerts, relief camps, jurisdiction scoping & RBAC, and analytics. AI/ML features (flood risk prediction, RAG situational assistant) are developed as an independent Python microservice, consumed by the Node backend via Axios.
+UI, dashboards, maps, portals & API integration
 
-Roadmap
- Department / Responder directory (CRUD + availability tracking)
- RAG-based situational assistant wrapper (Node ↔ Python integration)
- Notification system (SMS/push alerts)
- Admin approval workflow for authority self-registration
- Predictive risk layer on the live map
+### ⚙️ Backend — 4 Members
 
-Built for Smart India Hackathon — ResQtech: Detect. Respond. Protect.
-2. Copy .env.example to .env and fill in values
-3. npm run dev
+APIs, database, authentication, authorization, incidents, dispatch & resource management
 
-## Branching
-- `main` — stable, demo-ready only
-- `dev` — integration branch, all features merge here first
-- `feature/<name>` — one branch per feature (e.g. feature/auth, feature/incident-api)
+### 🤖 AI
+
+Separate AI engine currently under development.
+
+---
+
+## 🎯 Vision
+
+> **During a disaster, every second matters.**
+
+ResQtech aims to make emergency response:
+
+**⚡ Faster • 🎯 Smarter • 🤝 Coordinated • 📊 Data-Driven**
+
+by connecting the people who **report**, **decide**, and **respond** — all through one platform.
+
+---
+
+# 🏆 Built for Smart India Hackathon
+
+## **ResQtech**
+
+### *Smart Disaster Management & Emergency Response Platform*
+
+**Detect. Respond. Protect.**
