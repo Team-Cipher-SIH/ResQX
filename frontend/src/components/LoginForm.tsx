@@ -25,6 +25,8 @@ import {
   Radio,
   ShieldCheck,
   Activity,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 
 import {
@@ -46,6 +48,7 @@ export default function LoginForm({ role }: LoginFormProps) {
   const router = useRouter();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const [submissionFeedback, setSubmissionFeedback] = useState<{
     type: 'success' | 'error' | 'info';
@@ -180,7 +183,14 @@ export default function LoginForm({ role }: LoginFormProps) {
           }
         }
 
-        router.push(targetRoute);
+        setSubmissionFeedback({
+          type: 'success',
+          message: 'Login successful! Redirecting to command portal...',
+        });
+
+        setTimeout(() => {
+          window.location.href = targetRoute;
+        }, 300);
         return;
       }
 
@@ -676,10 +686,10 @@ export default function LoginForm({ role }: LoginFormProps) {
                     <Lock className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
 
                     <input
-                      type="password"
+                      type={showPassword ? 'text' : 'password'}
                       placeholder="••••••••"
                       {...register('password')}
-                      className={`w-full rounded-xl border bg-slate-50 py-3.5 pl-11 pr-4 text-sm text-slate-900 outline-none transition ${
+                      className={`w-full rounded-xl border bg-slate-50 py-3.5 pl-11 pr-11 text-sm text-slate-900 outline-none transition ${
                         errors.password
                           ? 'border-red-400 focus:ring-4 focus:ring-red-100'
                           : isCitizen
@@ -687,6 +697,20 @@ export default function LoginForm({ role }: LoginFormProps) {
                           : 'border-slate-200 focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100'
                       }`}
                     />
+
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 transition"
+                      tabIndex={-1}
+                      title={showPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
                   </div>
 
                   {errors.password && (
@@ -741,15 +765,10 @@ export default function LoginForm({ role }: LoginFormProps) {
                     </Link>
                   </>
                 ) : (
-                  <>
-                    <span>New authority? </span>
-                    <Link
-                      href="/authority/register"
-                      className="font-semibold text-blue-600 transition hover:text-blue-700"
-                    >
-                      Register here →
-                    </Link>
-                  </>
+                  <div className="flex items-center justify-center gap-1.5 text-xs text-slate-500">
+                    <ShieldAlert className="h-3.5 w-3.5 text-blue-600 shrink-0" />
+                    <span>Authority accounts & jurisdictions are provisioned by system administrators.</span>
+                  </div>
                 )}
 
               </div>

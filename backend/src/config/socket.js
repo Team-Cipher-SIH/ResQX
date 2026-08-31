@@ -28,7 +28,19 @@ function setupSocketIO(server) {
         return next(new Error("Authentication error: User not found"));
       }
 
+      // Extract verified jurisdictionId from token claims, fallback to user model
+      const jurisdictionId =
+        decoded.jurisdictionId ||
+        user.jurisdictionId ||
+        (user.state && user.district
+          ? `${user.state}_${user.district}`.toUpperCase().replace(/\s+/g, "_")
+          : user.state
+            ? user.state.toUpperCase().replace(/\s+/g, "_")
+            : null);
+
       socket.user = user;
+      socket.tokenClaims = decoded;
+      socket.jurisdictionId = jurisdictionId;
       next();
     } catch (error) {
       return next(new Error("Authentication error: Invalid token"));
@@ -37,12 +49,20 @@ function setupSocketIO(server) {
 
   io.on("connection", async (socket) => {
     const user = socket.user;
-    console.log(`User connected: ${user.name} (${user._id}) [${user.role} / ${user.authorityLevel || "none"}]`);
+    const jurisdictionId = socket.jurisdictionId;
+    console.log(
+      `User connected: ${user.name} (${user._id}) [${user.role} / ${user.authorityLevel || "none"}] [jurisdiction: ${jurisdictionId || "none"}]`
+    );
 
     // 1. Always join personal user room
     socket.join(`user:${user._id}`);
 
-    // 2. Join jurisdiction rooms based on strict role / authorityLevel mapping
+    // 2. Join token-verified jurisdiction room (never trusting client-supplied room)
+    if (jurisdictionId) {
+      socket.join(`jurisdiction:${jurisdictionId}`);
+    }
+
+    // 3. Join hierarchy-level jurisdiction rooms
     if (user.role === "admin" || (user.role === "authority" && user.authorityLevel === "central")) {
       socket.join("central-authority");
     } else if (user.role === "authority") {
@@ -74,7 +94,7 @@ function setupSocketIO(server) {
       }
     }
 
-    // 3. Handle explicit team join with authorization check
+    // 4. Handle explicit team join with authorization check
     socket.on("join-team", async (teamId) => {
       if (!teamId) return;
       try {
@@ -114,13 +134,31 @@ function getIO() {
 function emitToJurisdiction(state, district, event, data) {
   if (!io) return;
 
+  // Emit to specific district and state rooms
   if (district) {
     io.to(`district:${district}`).emit(event, data);
   }
   if (state) {
     io.to(`state:${state}`).emit(event, data);
   }
+
+  // Emit to canonical jurisdiction room if state/district combination exists
+  if (state && district) {
+    const jId = `${state}_${district}`.toUpperCase().replace(/\s+/g, "_");
+    io.to(`jurisdiction:${jId}`).emit(event, data);
+  } else if (state) {
+    const jId = `${state}`.toUpperCase().replace(/\s+/g, "_");
+    io.to(`jurisdiction:${jId}`).emit(event, data);
+  }
+
+  // Central authority always receives all notifications
   io.to("central-authority").emit(event, data);
 }
 
-module.exports = { setupSocketIO, getIO, emitToJurisdiction };
+function emitToJurisdictionId(jurisdictionId, event, data) {
+  if (!io || !jurisdictionId) return;
+  io.to(`jurisdiction:${jurisdictionId}`).emit(event, data);
+  io.to("central-authority").emit(event, data);
+}
+
+module.exports = { setupSocketIO, getIO, emitToJurisdiction, emitToJurisdictionId };

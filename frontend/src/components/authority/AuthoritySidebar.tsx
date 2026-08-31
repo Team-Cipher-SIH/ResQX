@@ -19,6 +19,7 @@ import {
   MapPin,
   Radio,
   Building2,
+  UserCheck,
 } from 'lucide-react';
 import { getCurrentUser, logout } from '@/lib/auth';
 import PulsingDot from '@/components/ui/PulsingDot';
@@ -89,7 +90,8 @@ export default function AuthoritySidebar() {
       { label: 'Dispatches', href: '/authority/dispatches', icon: Send },
       { label: 'Alerts', href: '/authority/alerts', icon: Bell },
       { label: 'Shelters & Relief', href: '/authority/shelters', icon: Home },
-      { label: 'Supply Inventory', href: '/authority/supplies', icon: Package }
+      { label: 'Supply Inventory', href: '/authority/supplies', icon: Package },
+      { label: 'Officers & Personnel', href: '/authority/officers', icon: UserCheck }
     );
 
     // 2. Jurisdiction Items (only for central/admin)

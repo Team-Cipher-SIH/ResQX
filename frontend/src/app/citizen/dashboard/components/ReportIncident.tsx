@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
-import { Camera, MapPin, AlertCircle, CheckCircle2, Loader2, UploadCloud } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Camera, MapPin, AlertCircle, CheckCircle2, Loader2, UploadCloud, ChevronDown } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import dynamic from 'next/dynamic';
 import { fetchFromApi } from '@/lib/api';
+import { INDIA_STATES } from '@/data/indiaStatesDistricts';
 
 import { incidentSchema, IncidentFormData } from '@/lib/validations/incident';
 
@@ -38,6 +39,8 @@ export default function ReportIncident({ onIncidentReported }: ReportIncidentPro
     register,
     handleSubmit,
     reset,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<IncidentFormData>({
     resolver: zodResolver(incidentSchema),
@@ -50,6 +53,16 @@ export default function ReportIncident({ onIncidentReported }: ReportIncidentPro
       district: '',
     },
   });
+
+  const selectedState = watch('state');
+
+  const availableDistricts = useMemo(() => {
+    if (!selectedState) return [];
+    const found = INDIA_STATES.find(
+      (s) => s.name.toLowerCase() === selectedState.toLowerCase()
+    );
+    return found ? found.districts : [];
+  }, [selectedState]);
 
   const getAccuracyStatus = (accuracy: number) => {
     if (accuracy <= 30) {
@@ -228,44 +241,65 @@ export default function ReportIncident({ onIncidentReported }: ReportIncidentPro
 
         {/* State & District Grid */}
         <div className="grid gap-5 md:grid-cols-2">
-          {/* State */}
+          {/* State Select */}
           <div>
             <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-700">
-              State
+              State / Union Territory <span className="text-red-500">*</span>
             </label>
 
-            <input
-              type="text"
-              placeholder="e.g. Maharashtra"
-              {...register('state')}
-              className={`w-full rounded-xl border px-4 py-3 text-sm outline-none transition-all duration-200 ${
-                errors.state
-                  ? 'border-red-400 bg-red-50 focus:ring-2 focus:ring-red-200'
-                  : 'border-slate-200 bg-slate-50/50 hover:bg-white focus:bg-white focus:border-blue-500 focus:ring-3 focus:ring-blue-100'
-              }`}
-            />
+            <div className="relative">
+              <select
+                {...register('state', {
+                  onChange: () => setValue('district', ''),
+                })}
+                className={`w-full appearance-none rounded-xl border px-4 py-3 text-sm outline-none transition-all duration-200 font-medium ${
+                  errors.state
+                    ? 'border-red-400 bg-red-50 text-red-900 focus:ring-2 focus:ring-red-200'
+                    : 'border-slate-200 bg-slate-50/50 hover:bg-white focus:bg-white focus:border-blue-500 focus:ring-3 focus:ring-blue-100 text-slate-800'
+                }`}
+              >
+                <option value="">Select State</option>
+                {INDIA_STATES.map((s) => (
+                  <option key={s.name} value={s.name}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            </div>
 
             {errors.state && (
               <p className="mt-1 text-xs text-red-600 font-medium">{errors.state.message}</p>
             )}
           </div>
 
-          {/* District */}
+          {/* District Select */}
           <div>
             <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-700">
-              District
+              District / Command Region <span className="text-red-500">*</span>
             </label>
 
-            <input
-              type="text"
-              placeholder="e.g. Pune"
-              {...register('district')}
-              className={`w-full rounded-xl border px-4 py-3 text-sm outline-none transition-all duration-200 ${
-                errors.district
-                  ? 'border-red-400 bg-red-50 focus:ring-2 focus:ring-red-200'
-                  : 'border-slate-200 bg-slate-50/50 hover:bg-white focus:bg-white focus:border-blue-500 focus:ring-3 focus:ring-blue-100'
-              }`}
-            />
+            <div className="relative">
+              <select
+                {...register('district')}
+                disabled={!selectedState}
+                className={`w-full appearance-none rounded-xl border px-4 py-3 text-sm outline-none transition-all duration-200 font-medium ${
+                  !selectedState
+                    ? 'border-slate-200 bg-slate-100/70 text-slate-400 cursor-not-allowed'
+                    : errors.district
+                    ? 'border-red-400 bg-red-50 text-red-900 focus:ring-2 focus:ring-red-200'
+                    : 'border-slate-200 bg-slate-50/50 hover:bg-white focus:bg-white focus:border-blue-500 focus:ring-3 focus:ring-blue-100 text-slate-800'
+                }`}
+              >
+                <option value="">{selectedState ? 'Select District' : 'Select State First'}</option>
+                {availableDistricts.map((d) => (
+                  <option key={d} value={d}>
+                    {d}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            </div>
 
             {errors.district && (
               <p className="mt-1 text-xs text-red-600 font-medium">{errors.district.message}</p>

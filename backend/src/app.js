@@ -22,10 +22,12 @@ app.use("/api/help-posts", helpPostRouter);
 const teamRoutes = require("./routes/responseteam.route.js");
 const dispatchRoutes = require("./routes/dispatch.route.js");
 const dashboardRoutes = require("./routes/dashboard.route.js");
+const aiRoutes = require("./routes/ai.route.js");
 
 app.use("/api/teams", teamRoutes);
 app.use("/api/dispatches", dispatchRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/ai", aiRoutes);
 
 app.get("/",(req,res)=>{
     res.send("server is running");

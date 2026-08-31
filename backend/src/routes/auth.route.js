@@ -10,6 +10,8 @@ const {
   updateUserRole,
   getProfile,
   updateProfile,
+  provisionOfficer,
+  getOfficers,
 } = require("../controllers/auth.controller");
 
 router.post("/register", register);
@@ -19,6 +21,11 @@ router.get("/me", protect, (req, res) => {
 });
 router.get("/profile", protect, getProfile);
 router.patch("/profile", protect, updateProfile);
+
+// Officer Provisioning & Management Routes (Hierarchical authority/admin access)
+router.post("/officers", protect, authorize("authority", "admin"), provisionOfficer);
+router.get("/officers", protect, authorize("authority", "admin"), getOfficers);
+
 router.get(
   "/authority-only",
   protect,

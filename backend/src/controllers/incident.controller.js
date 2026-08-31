@@ -5,6 +5,7 @@ const ResponseTeam = require("../models/responseteam.model");
 const { calculatePriorityScore } = require("../utils/priorityScore");
 const { validateObjectId, checkJurisdictionAccess } = require("../middleware/jurisdiction.middleware");
 const { emitToJurisdiction, getIO } = require("../config/socket");
+const { verifyIncidentAuthenticity } = require("../utils/aiVerificationService");
 
 // Helper to safely parse and validate GeoJSON Point coordinates [longitude, latitude]
 const parseAndValidateCoordinates = (coordinates) => {
@@ -102,6 +103,15 @@ const createIncident = async (req, res) => {
       ],
     });
 
+    // Auto-run AI Authenticity and Triage Verification
+    try {
+      const aiAnalysis = await verifyIncidentAuthenticity(incident);
+      incident.aiAnalysis = aiAnalysis;
+      await incident.save();
+    } catch (aiErr) {
+      console.warn("AI verification on creation skipped:", aiErr.message);
+    }
+
     // Create activity log
     try {
       await ActivityLog.create({
@@ -145,18 +155,20 @@ const getIncidents = async (req, res) => {
     const filter = {};
 
     // 1. Enforce authenticated jurisdiction first
+    const makeRegex = (val) => new RegExp(`^${val.trim()}$`, "i");
+
     if (req.user.role === "admin" || req.user.authorityLevel === "central") {
-      if (state) filter.state = state;
-      if (district) filter.district = district;
+      if (state) filter.state = makeRegex(state);
+      if (district) filter.district = makeRegex(district);
     } else if (req.user.authorityLevel === "state_admin") {
-      // Must only query their own state
-      filter.state = req.user.state;
+      // Must only query their own state (case-insensitive)
+      if (req.user.state) filter.state = makeRegex(req.user.state);
       // Allow optional filter inside their own state
-      if (district) filter.district = district;
+      if (district) filter.district = makeRegex(district);
     } else if (req.user.authorityLevel === "district_admin") {
-      // Must only query their own state and district
-      filter.state = req.user.state;
-      filter.district = req.user.district;
+      // Must only query their own state and district (case-insensitive)
+      if (req.user.state) filter.state = makeRegex(req.user.state);
+      if (req.user.district) filter.district = makeRegex(req.user.district);
     } else if (req.user.authorityLevel === "field_responder") {
       // Field responder: only their assigned incidents or teams
       const userTeams = await ResponseTeam.find({

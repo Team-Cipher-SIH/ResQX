@@ -24,6 +24,8 @@ import {
   Building2,
   MapPin,
   Sparkles,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 
 import {
@@ -37,6 +39,8 @@ interface RegisterFormProps {
 
 export default function RegisterForm({ role }: RegisterFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [submissionFeedback, setSubmissionFeedback] = useState<{
     type: 'success' | 'error' | 'info';
@@ -574,10 +578,10 @@ export default function RegisterForm({ role }: RegisterFormProps) {
                         <Lock className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
 
                         <input
-                          type="password"
+                          type={showPassword ? 'text' : 'password'}
                           placeholder="••••••••"
                           {...register('password')}
-                          className={`w-full rounded-xl border bg-slate-50 py-3.5 pl-11 pr-4 text-sm text-slate-900 outline-none transition ${
+                          className={`w-full rounded-xl border bg-slate-50 py-3.5 pl-11 pr-11 text-sm text-slate-900 outline-none transition ${
                             errors.password
                               ? 'border-red-400 focus:ring-4 focus:ring-red-100'
                               : isCitizen
@@ -585,6 +589,20 @@ export default function RegisterForm({ role }: RegisterFormProps) {
                               : 'border-slate-200 focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100'
                           }`}
                         />
+
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 transition"
+                          tabIndex={-1}
+                          title={showPassword ? 'Hide password' : 'Show password'}
+                        >
+                          {showPassword ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </button>
                       </div>
 
                       {errors.password && (
@@ -606,10 +624,10 @@ export default function RegisterForm({ role }: RegisterFormProps) {
                         <Lock className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
 
                         <input
-                          type="password"
+                          type={showConfirmPassword ? 'text' : 'password'}
                           placeholder="••••••••"
                           {...register('confirmPassword')}
-                          className={`w-full rounded-xl border bg-slate-50 py-3.5 pl-11 pr-4 text-sm text-slate-900 outline-none transition ${
+                          className={`w-full rounded-xl border bg-slate-50 py-3.5 pl-11 pr-11 text-sm text-slate-900 outline-none transition ${
                             errors.confirmPassword
                               ? 'border-red-400 focus:ring-4 focus:ring-red-100'
                               : isCitizen
@@ -617,6 +635,20 @@ export default function RegisterForm({ role }: RegisterFormProps) {
                               : 'border-slate-200 focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100'
                           }`}
                         />
+
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 transition"
+                          tabIndex={-1}
+                          title={showConfirmPassword ? 'Hide password' : 'Show password'}
+                        >
+                          {showConfirmPassword ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </button>
                       </div>
 
                       {errors.confirmPassword && (

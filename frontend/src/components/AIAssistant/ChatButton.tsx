@@ -55,7 +55,7 @@ const SUGGESTIONS: SuggestionItem[] = [
 
 const STRINGS: Record<Lang, Record<string, string>> = {
   en: {
-    title: 'ResQX Assistant',
+    title: 'ResQTech Assistant',
     subtitle: 'Ask anything about disasters, shelters & safety',
     placeholder: 'Ask me anything...',
     howCanIHelp: 'How can I help you?',
@@ -75,7 +75,7 @@ const STRINGS: Record<Lang, Record<string, string>> = {
     charsLeft: 'characters left',
   },
   hi: {
-    title: 'ResQX सहायक',
+    title: 'ResQTech सहायक',
     subtitle: 'आपदा, शेल्टर और सुरक्षा से जुड़ा कुछ भी पूछें',
     placeholder: 'कुछ भी पूछें...',
     howCanIHelp: 'मैं आपकी कैसे मदद कर सकता हूँ?',

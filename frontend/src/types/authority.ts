@@ -69,6 +69,22 @@ export interface Incident {
   assignedTo: string | { _id: string; name: string } | null;
   assignedTeam: string | ResponseTeam | null;
   priorityScore: number;
+  aiAnalysis?: {
+    isEmergency?: boolean;
+    emergencyRelevanceReason?: string;
+    classifiedType?: string;
+    aiSeverity?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+    aiPriority?: 'P1' | 'P2' | 'P3' | 'P4';
+    recommendedTeam?: string;
+    aiSummary?: string;
+    authenticity: 'LIKELY_GENUINE' | 'SUSPICIOUS_OR_PRANK' | 'NEEDS_PHYSICAL_VERIFICATION';
+    credibilityScore: number;
+    confidence: number;
+    reasoning: string;
+    recommendedAction?: string;
+    suggestedUnit?: string;
+    analyzedAt?: string;
+  } | null;
   statusHistory?: StatusHistoryEntry[];
   createdAt: string;
   updatedAt: string;

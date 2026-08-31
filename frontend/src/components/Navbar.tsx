@@ -159,14 +159,6 @@ export default function Navbar() {
             </Link>
 
             <Link
-              href="/authority/register"
-              className="inline-flex items-center space-x-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 shadow-sm transition hover:bg-blue-100"
-            >
-              <ShieldPlus className="h-3.5 w-3.5 text-blue-600" />
-              <span>Authority Register</span>
-            </Link>
-
-            <Link
               href="/citizen/register"
               className="inline-flex items-center space-x-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 shadow-sm transition hover:bg-emerald-100"
             >
@@ -245,14 +237,6 @@ export default function Navbar() {
               className="flex justify-center rounded-lg bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white"
             >
               Authority Login
-            </Link>
-
-            <Link
-              href="/authority/register"
-              onClick={closeMobileMenu}
-              className="flex justify-center rounded-lg border border-blue-100 bg-blue-50 px-4 py-2.5 text-xs font-semibold text-blue-700"
-            >
-              New Authority? Register
             </Link>
 
             <Link

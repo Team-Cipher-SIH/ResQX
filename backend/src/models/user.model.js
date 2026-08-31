@@ -37,6 +37,7 @@ const userSchema = new mongoose.Schema(
       enum: ["central", "state_admin", "district_admin", "field_responder", "department"],
       default: null,
     },
+    jurisdictionId: { type: String, default: null, trim: true, index: true },
     state: { type: String, default: null, trim: true },
     district: { type: String, default: null, trim: true },
     department: { type: String, default: null, trim: true },

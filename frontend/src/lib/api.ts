@@ -217,6 +217,7 @@ export const API_ENDPOINTS = {
   CITIZEN_LOGIN: '/auth/login',
   AUTHORITY_LOGIN: '/auth/login',
   REGISTER: '/auth/register',
+  OFFICERS: '/auth/officers',
   REFRESH: '/auth/refresh',
   LOGOUT: '/auth/logout',
   PROFILE: '/auth/profile',
@@ -232,6 +233,7 @@ export const API_ENDPOINTS = {
   INCIDENT_STATS: '/incidents/stats',
   VERIFY_INCIDENT: (id: string) => `/incidents/${id}/verify`,
   ASSIGN_INCIDENT: (id: string) => `/incidents/${id}/assign`,
+  AI_VERIFY_INCIDENT: (id: string) => `/ai/verify-incident/${id}`,
 
   // Teams
   TEAMS: '/teams',

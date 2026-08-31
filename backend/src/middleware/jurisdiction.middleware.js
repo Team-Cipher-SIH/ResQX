@@ -9,11 +9,22 @@ const attachJurisdictionFilter = (req, res, next) => {
     return res.status(401).json({ success: false, message: "Not authenticated" });
   }
 
-  const { role, authorityLevel, state, district, _id } = req.user;
+  const { role, authorityLevel, state, district, jurisdictionId, _id } = req.user;
 
   if (role === "citizen") {
     return res.status(403).json({ success: false, message: "Forbidden: Citizens do not have authority jurisdiction" });
   }
+
+  // Set the token/user-verified jurisdictionId
+  req.jurisdictionId =
+    jurisdictionId ||
+    (state && district
+      ? `${state}_${district}`.toUpperCase().replace(/\s+/g, "_")
+      : state
+        ? `${state}`.toUpperCase().replace(/\s+/g, "_")
+        : null);
+
+  const makeRegex = (val) => (val ? new RegExp(`^${val.trim()}$`, "i") : null);
 
   if (role === "admin" || authorityLevel === "central") {
     req.jurisdictionFilter = {};
@@ -21,25 +32,25 @@ const attachJurisdictionFilter = (req, res, next) => {
     if (!state) {
       return res.status(403).json({ success: false, message: "Forbidden: State admin without assigned state" });
     }
-    req.jurisdictionFilter = { state };
+    req.jurisdictionFilter = { state: makeRegex(state) };
   } else if (authorityLevel === "district_admin") {
     if (!state || !district) {
       return res.status(403).json({ success: false, message: "Forbidden: District admin without assigned state or district" });
     }
-    req.jurisdictionFilter = { state, district };
+    req.jurisdictionFilter = { state: makeRegex(state), district: makeRegex(district) };
   } else if (authorityLevel === "field_responder") {
     req.jurisdictionFilter = { assignedTo: _id };
   } else if (authorityLevel === "department") {
     const filter = {};
-    if (state) filter.state = state;
-    if (district) filter.district = district;
+    if (state) filter.state = makeRegex(state);
+    if (district) filter.district = makeRegex(district);
     req.jurisdictionFilter = filter;
   } else if (role === "authority") {
-    // Fallback for legacy authority role without explicit authorityLevel
+    // Fallback for authority role without explicit authorityLevel
     if (state && district) {
-      req.jurisdictionFilter = { state, district };
+      req.jurisdictionFilter = { state: makeRegex(state), district: makeRegex(district) };
     } else if (state) {
-      req.jurisdictionFilter = { state };
+      req.jurisdictionFilter = { state: makeRegex(state) };
     } else {
       req.jurisdictionFilter = {};
     }

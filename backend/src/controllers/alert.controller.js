@@ -66,8 +66,25 @@ const getAlerts = async (req, res) => {
     if (isActive !== undefined) filter.isActive = isActive === "true";
     if (severity) filter.severity = severity;
     if (type) filter.type = type;
-    if (state) filter.affectedStates = state;
-    if (district) filter.affectedDistricts = district;
+
+    // If authenticated authority, enforce jurisdiction scoping securely
+    if (req.user && req.user.role === "authority") {
+      if (req.user.authorityLevel === "state_admin" && req.user.state) {
+        filter.$or = [{ affectedStates: { $size: 0 } }, { affectedStates: req.user.state }];
+      } else if (req.user.authorityLevel === "district_admin") {
+        const conditions = [{ affectedStates: { $size: 0 } }];
+        if (req.user.state) {
+          conditions.push({ affectedStates: req.user.state, affectedDistricts: { $size: 0 } });
+        }
+        if (req.user.district) {
+          conditions.push({ affectedDistricts: req.user.district });
+        }
+        filter.$or = conditions;
+      }
+    } else {
+      if (state) filter.affectedStates = state;
+      if (district) filter.affectedDistricts = district;
+    }
 
     const alerts = await Alert.find(filter)
       .populate("issuedBy", "name email role authorityLevel")
