@@ -167,6 +167,11 @@ export default function AlertsManagementPage() {
                       }`}>
                         {alert.type}
                       </span>
+                      {alert.source === 'ai_risk_prediction' && (
+                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">
+                          AI Detected
+                        </span>
+                      )}
                       {!alert.isActive && (
                         <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">
                           Inactive
@@ -275,6 +280,7 @@ export default function AlertsManagementPage() {
                   </div>
                 )}
               </div>
+              
               <button type="submit" disabled={submitting}
                 className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-colors disabled:opacity-50">
                 {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bell className="w-4 h-4" />}

@@ -261,6 +261,10 @@ export const API_ENDPOINTS = {
   SHELTERS_NEARBY: '/shelters/nearby',
   SHELTER_DETAIL: (id: string) => `/shelters/${id}`,
 
+  RISK_ASSESSMENTS: '/risk-assessments',
+  RISK_ASSESSMENT_DETAIL: (id: string) => `/risk-assessments/${id}`,
+  VULNERABLE_ZONES: '/risk-assessments/public/vulnerable-zones',
+
   // Supplies & Inventory
   SUPPLIES: '/supplies',
   SUPPLY_STATS: '/supplies/stats',
@@ -272,4 +276,8 @@ export const API_ENDPOINTS = {
   HELP_POSTS: '/help-posts',
   MY_HELP_POSTS: '/help-posts/my-posts',
   FULFILL_HELP_POST: (id: string) => `/help-posts/${id}/fulfill`,
+
+  PREPAREDNESS: '/preparedness',
+  PREPAREDNESS_BREAKDOWN: '/preparedness/breakdown', 
+  
 };

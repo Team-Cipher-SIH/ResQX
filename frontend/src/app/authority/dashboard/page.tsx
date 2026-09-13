@@ -19,6 +19,7 @@ import { MOCK_SHELTERS_DATA } from '@/data/shelterMockData';
 import { MOCK_SUPPLIES_DATA } from '@/data/supplyMockData';
 import PulsingDot from '@/components/ui/PulsingDot';
 import CommandMap from '@/components/authority/CommandMap';
+import PreparednessCard from '@/components/authority/PreparednessCard';
 
 function formatRelativeTime(dateString?: string) {
   if (!dateString) return 'recently';
@@ -250,6 +251,9 @@ export default function AuthorityDashboardPage() {
                 </>
               )}
             </div>
+
+            {/* 🆕 Preparedness Status Overview */}
+            <PreparednessCard />
 
             {/* Compact Supply Resource Overview */}
             <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4">

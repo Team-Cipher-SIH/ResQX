@@ -45,6 +45,21 @@ const alertSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+        isActive: {
+      type: Boolean,
+      default: true,
+    },
+    // 🆕 for AI-triggered early warnings
+    source: {
+      type: String,
+      enum: ["manual", "ai_risk_prediction", "citizen_report"],
+      default: "manual",
+    },
+    sourceRiskAssessment: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "RiskAssessment",
+      default: null,
+    },
   },
   { timestamps: true }
 );
