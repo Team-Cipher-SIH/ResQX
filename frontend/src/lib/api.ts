@@ -280,4 +280,8 @@ export const API_ENDPOINTS = {
   PREPAREDNESS: '/preparedness',
   PREPAREDNESS_BREAKDOWN: '/preparedness/breakdown', 
   
+  EXTERNAL_WEATHER: '/external-data/weather',
+  EXTERNAL_SEISMIC: '/external-data/seismic',
+  EXTERNAL_FLOOD_MAPPING: '/external-data/flood-mapping',
+  EXTERNAL_INTAKE: '/external-data/intake',
 };
