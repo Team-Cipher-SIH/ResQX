@@ -170,4 +170,65 @@ const getNearbyAlerts = async (req, res) => {
   }
 };
 
-module.exports = { createAlert, getAlerts, deactivateAlert, getNearbyAlerts };
+// @desc   Get all draft alerts awaiting authority review (jurisdiction scoped)
+// @route  GET /api/alerts/drafts
+const getDraftAlerts = async (req, res) => {
+  try {
+    const filter = { status: 'draft', ...req.jurisdictionFilter };
+    const drafts = await Alert.find(filter).sort({ createdAt: -1 });
+    return res.status(200).json({ success: true, data: drafts });
+  } catch (err) {
+    console.error('getDraftAlerts error:', err);
+    return res.status(500).json({ success: false, message: 'Failed to fetch draft alerts.' });
+  }
+};
+
+// @desc   Authority approves a draft alert and issues it publicly
+// @route  PATCH /api/alerts/:id/issue
+const issueAlert = async (req, res) => {
+  try {
+    const alert = await Alert.findById(req.params.id);
+    if (!alert) {
+      return res.status(404).json({ success: false, message: 'Alert not found.' });
+    }
+    if (alert.status !== 'draft') {
+      return res.status(400).json({ success: false, message: 'Only draft alerts can be issued.' });
+    }
+
+    alert.status = 'issued';
+    alert.isActive = true;
+    alert.startTime = new Date();
+    alert.issuedBy = req.user?._id || alert.issuedBy;
+    await alert.save();
+
+    return res.status(200).json({ success: true, message: 'Alert issued successfully.', data: alert });
+  } catch (err) {
+    console.error('issueAlert error:', err);
+    return res.status(500).json({ success: false, message: 'Failed to issue alert.' });
+  }
+};
+
+// @desc   Authority rejects a draft alert (false positive / not credible)
+// @route  PATCH /api/alerts/:id/reject
+const rejectAlert = async (req, res) => {
+  try {
+    const alert = await Alert.findById(req.params.id);
+    if (!alert) {
+      return res.status(404).json({ success: false, message: 'Alert not found.' });
+    }
+    if (alert.status !== 'draft') {
+      return res.status(400).json({ success: false, message: 'Only draft alerts can be rejected.' });
+    }
+
+    alert.status = 'expired';
+    alert.isActive = false;
+    await alert.save();
+
+    return res.status(200).json({ success: true, message: 'Draft alert rejected.', data: alert });
+  } catch (err) {
+    console.error('rejectAlert error:', err);
+    return res.status(500).json({ success: false, message: 'Failed to reject alert.' });
+  }
+};
+
+module.exports = { createAlert, getAlerts, deactivateAlert, getNearbyAlerts, getDraftAlerts, issueAlert, rejectAlert };

@@ -255,15 +255,21 @@ export const API_ENDPOINTS = {
   ALERTS: '/alerts',
   ALERTS_NEARBY: '/alerts/nearby',
   DEACTIVATE_ALERT: (id: string) => `/alerts/${id}/deactivate`,
+  ALERT_DRAFTS: '/alerts/drafts',
+  ISSUE_ALERT: (id: string) => `/alerts/${id}/issue`,
+  REJECT_ALERT: (id: string) => `/alerts/${id}/reject`,
 
   // Shelters
   SHELTERS: '/shelters',
   SHELTERS_NEARBY: '/shelters/nearby',
   SHELTER_DETAIL: (id: string) => `/shelters/${id}`,
 
-  RISK_ASSESSMENTS: '/risk-assessments',
-  RISK_ASSESSMENT_DETAIL: (id: string) => `/risk-assessments/${id}`,
-  VULNERABLE_ZONES: '/risk-assessments/public/vulnerable-zones',
+  RISK_ASSESSMENTS: '/risk',
+  RISK_PREDICTION: '/risk/prediction',
+  RISK_BY_DISTRICT: (district: string) => `/risk/${district}`,
+  RISK_BY_DISTRICT_TYPE: (district: string, disasterType: string) => `/risk/${district}/${disasterType}`,
+  RISK_ASSESSMENT_DETAIL: (id: string) => `/risk/${id}`,
+  VULNERABLE_ZONES: '/risk/vulnerable-zones',
 
   // Supplies & Inventory
   SUPPLIES: '/supplies',
@@ -279,9 +285,7 @@ export const API_ENDPOINTS = {
 
   PREPAREDNESS: '/preparedness',
   PREPAREDNESS_BREAKDOWN: '/preparedness/breakdown', 
-  
-  EXTERNAL_WEATHER: '/external-data/weather',
-  EXTERNAL_SEISMIC: '/external-data/seismic',
-  EXTERNAL_FLOOD_MAPPING: '/external-data/flood-mapping',
-  EXTERNAL_INTAKE: '/external-data/intake',
+ 
+  EXTERNAL_DATA_INGEST: '/external-data/ingest',
+  EXTERNAL_DATA_LATEST: '/external-data/latest',
 };

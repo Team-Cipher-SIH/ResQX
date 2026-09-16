@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const riskAssessmentSchema = new mongoose.Schema(
   {
-    hazardType: {
+    disasterType: {
       type: String,
       enum: ['flood', 'fire', 'earthquake'],
       required: true,
@@ -22,13 +22,14 @@ const riskAssessmentSchema = new mongoose.Schema(
     state: { type: String, required: true, index: true },
     district: { type: String, required: true, index: true },
     riskScore: { type: Number, min: 0, max: 100, required: true },
+    riskLevel: {
+      type: String,
+      enum: ['LOW', 'MODERATE', 'HIGH', 'CRITICAL'],
+      required: true,
+      index: true,
+    },
     confidence: { type: Number, min: 0, max: 1, default: 0.5 },
-    factors: [
-      {
-        name: { type: String },
-        weight: { type: Number },
-      },
-    ],
+    riskFactors: [{ type: String }], // e.g. ["heavy rainfall", "river level"]
     source: {
       type: String,
       enum: ['ai_model', 'manual', 'external_feed'],

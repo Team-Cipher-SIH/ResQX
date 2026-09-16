@@ -14,7 +14,7 @@ app.use(cors());
 app.use(express.json());
 
 
-app.use('/api/risk-assessments', riskAssessmentRoutes);
+app.use('/api/risk', riskAssessmentRoutes);
 app.use('/api/preparedness', preparednessRoutes);
 app.use('/api/external-data', externalDataRoutes);
 app.use("/api/auth",authRouter);

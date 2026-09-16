@@ -4,7 +4,8 @@ const router = express.Router();
 const {
   createRiskAssessment,
   getRiskAssessments,
-  getRiskAssessmentById,
+  getRiskByDistrict,
+  getRiskByDistrictAndType,
   updateRiskAssessment,
   deleteRiskAssessment,
   getVulnerableZones,
@@ -16,14 +17,16 @@ const { attachJurisdictionFilter } = require('../middleware/jurisdiction.middlew
 router.use(protect);
 router.use(attachJurisdictionFilter);
 
-router.route('/').get(getRiskAssessments).post(createRiskAssessment);
-router.get('/public/vulnerable-zones', getVulnerableZones); 
+// Static routes FIRST — order matters
+router.get('/', getRiskAssessments);
+router.post('/prediction', createRiskAssessment);
 router.get('/vulnerable-zones', getVulnerableZones);
 
-router
-  .route('/:id')
-  .get(getRiskAssessmentById)
-  .patch(updateRiskAssessment)
-  .delete(deleteRiskAssessment);
+// Dynamic routes — two-segment before one-segment
+router.get('/:district/:disasterType', getRiskByDistrictAndType);
+router.get('/:district', getRiskByDistrict);
+
+router.patch('/:id', updateRiskAssessment);
+router.delete('/:id', deleteRiskAssessment);
 
 module.exports = router;

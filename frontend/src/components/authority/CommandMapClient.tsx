@@ -38,12 +38,16 @@ import { fetchFromApi, API_ENDPOINTS } from '@/lib/api';
 // ─── Risk Zone Type ───
 interface RiskZone {
   _id: string;
-  hazardType: 'flood' | 'fire' | 'earthquake';
+  disasterType: 'flood' | 'fire' | 'earthquake'; // renamed from hazardType
+  riskLevel: 'LOW' | 'MODERATE' | 'HIGH' | 'CRITICAL'; 
   location: { coordinates: [number, number] };
   riskScore: number;
+  riskFactors?: string[]; // renamed from factors, now string array
   isVulnerableZone: boolean;
   state: string;
   district: string;
+   source?: 'ai_model' | 'manual' | 'external_feed'; 
+  isStale?: boolean; 
 }
 
 // ─── Comprehensive State Coordinates Dictionary for India ───
@@ -1047,7 +1051,7 @@ export default function CommandMapClient({
               <Popup closeButton={false}>
                 <div className="min-w-[220px] p-2.5 text-xs text-slate-800 space-y-2">
                   <div className="flex items-center justify-between border-b border-slate-100 pb-1.5">
-                    <b className="capitalize text-sm">{zone.hazardType} Risk Zone</b>
+                    <b className="capitalize text-sm">{zone.disasterType} Risk Zone</b>
                     <span
                       className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded"
                       style={{ backgroundColor: `${color}20`, color }}
@@ -1073,13 +1077,25 @@ export default function CommandMapClient({
                     </div>
                   )}
 
-                  <p className="text-[10px] text-slate-400 leading-relaxed pt-1 border-t border-slate-100">
+                                    <p className="text-[10px] text-slate-400 leading-relaxed pt-1 border-t border-slate-100">
                     {zone.riskScore >= 70
                       ? 'This area shows a high likelihood of hazard impact based on AI prediction. Priority monitoring recommended.'
                       : zone.riskScore >= 40
                       ? 'Moderate hazard risk detected. Continue routine monitoring.'
                       : 'Low hazard risk currently detected in this area.'}
                   </p>
+
+                  {/* 🆕 Source + staleness footer */}
+                  <div className="flex items-center justify-between text-[9px] pt-1 border-t border-slate-100">
+                    <span className="font-semibold text-slate-400 uppercase">
+                      Source: {zone.source === 'ai_model' ? 'AI Model' : zone.source === 'manual' ? 'Manual Entry' : zone.source === 'external_feed' ? 'External Feed' : 'Unknown'}
+                    </span>
+                    {zone.isStale && (
+                      <span className="font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">
+                        ⏱ Stale Data
+                      </span>
+                    )}
+                  </div>
                 </div>
               </Popup>
             );
