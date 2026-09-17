@@ -197,17 +197,17 @@ export default function AuthorityDashboardPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-50">
-      <AuthorityHeader title="Command Center" subtitle="Monitor and manage emergency operations" />
+      <AuthorityHeader title="Command Center" subtitle="Monitor and coordinate emergency operations nationwide" />
 
-      <main className="flex-1 p-6 space-y-6">
+      <main className="flex-1 p-6 space-y-6 max-w-7xl mx-auto w-full">
         {error ? (
-          <div className="bg-white rounded-xl shadow-xs border border-slate-200 p-6">
+          <div className="bg-white rounded-2xl shadow-xs border border-slate-200/90 p-6">
             <ErrorState message={error} onRetry={loadData} />
           </div>
         ) : (
           <>
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
               {loading || !stats ? (
                 Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)
               ) : (
@@ -232,13 +232,13 @@ export default function AuthorityDashboardPage() {
                   />
                   <StatCard
                     icon={Send}
-                    label="Dispatched"
+                    label="Dispatched Units"
                     value={stats.dispatchedIncidents}
                     color="purple"
                   />
                   <StatCard
                     icon={Users}
-                    label="Active Response Teams"
+                    label="Ready Response Teams"
                     value={stats.activeResponseTeams}
                     color="emerald"
                   />
@@ -252,69 +252,76 @@ export default function AuthorityDashboardPage() {
               )}
             </div>
 
-            {/* 🆕 Preparedness Status Overview */}
+            {/* Preparedness Status Overview */}
             <PreparednessCard />
 
-            {/* Compact Supply Resource Overview */}
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            {/* Compact Supply Resource Overview Banner */}
+            <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 transition-all duration-200 hover:border-slate-300">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl border border-blue-100 shadow-xs">
+                <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl border border-blue-100 shadow-2xs">
                   <Package className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-sm text-slate-900">National Relief Supply & Logistics Reserve</h3>
-                  <p className="text-xs text-slate-500">
-                    Emergency stockpile readiness &bull; {centralSupplyMetrics.criticalCount} critical shortages in {centralSupplyMetrics.affectedDistrictsCount} sectors
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-extrabold text-sm text-slate-900 tracking-tight">National Relief Supply & Stockpile Reserve</h3>
+                    {centralSupplyMetrics.criticalCount > 0 && (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-red-100 text-red-700 border border-red-200">
+                        {centralSupplyMetrics.criticalCount} Alerts
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Live logistics readiness &bull; {centralSupplyMetrics.criticalCount} critical shortages in {centralSupplyMetrics.affectedDistrictsCount} sectors
                   </p>
                 </div>
               </div>
 
               <div className="flex flex-wrap items-center gap-2.5">
                 {/* Water Metric */}
-                <div className="px-3 py-1.5 bg-slate-50 rounded-xl border border-slate-100 text-xs flex items-center gap-2">
+                <div className="px-3 py-1.5 bg-slate-50/80 rounded-xl border border-slate-200/60 text-xs flex items-center gap-2 shadow-2xs">
                   <Droplets className="w-3.5 h-3.5 text-blue-600" />
                   <div>
-                    <span className="text-[10px] text-slate-500 font-bold block">Water</span>
+                    <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Water</span>
                     <span className="font-mono font-bold text-slate-900">{centralSupplyMetrics.totalWater.toLocaleString()} L</span>
                   </div>
                 </div>
 
                 {/* Food Metric */}
-                <div className="px-3 py-1.5 bg-slate-50 rounded-xl border border-slate-100 text-xs flex items-center gap-2">
+                <div className="px-3 py-1.5 bg-slate-50/80 rounded-xl border border-slate-200/60 text-xs flex items-center gap-2 shadow-2xs">
                   <Utensils className="w-3.5 h-3.5 text-amber-600" />
                   <div>
-                    <span className="text-[10px] text-slate-500 font-bold block">Food Kits</span>
+                    <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Food Kits</span>
                     <span className="font-mono font-bold text-slate-900">{centralSupplyMetrics.totalFood.toLocaleString()}</span>
                   </div>
                 </div>
 
                 {/* Medicine Metric */}
-                <div className="px-3 py-1.5 bg-slate-50 rounded-xl border border-slate-100 text-xs flex items-center gap-2">
+                <div className="px-3 py-1.5 bg-slate-50/80 rounded-xl border border-slate-200/60 text-xs flex items-center gap-2 shadow-2xs">
                   <HeartPulse className="w-3.5 h-3.5 text-red-600" />
                   <div>
-                    <span className="text-[10px] text-slate-500 font-bold block">Medical</span>
+                    <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Medical</span>
                     <span className="font-mono font-bold text-slate-900">{centralSupplyMetrics.totalMedicine.toLocaleString()}</span>
                   </div>
                 </div>
 
                 {/* Stock Readiness Badges */}
-                <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-50 rounded-xl border border-slate-100 text-[10px] font-bold">
-                  <span className={centralSupplyMetrics.waterStatus === 'Critical' ? 'text-red-600' : 'text-emerald-700'}>
+                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 rounded-xl border border-slate-200/60 text-[10px] font-bold">
+                  <span className={centralSupplyMetrics.waterStatus === 'Critical' ? 'text-red-600 font-extrabold' : 'text-emerald-700'}>
                     Water: {centralSupplyMetrics.waterStatus}
                   </span>
                   <span className="text-slate-300">&bull;</span>
-                  <span className={centralSupplyMetrics.foodStatus === 'Critical' ? 'text-red-600' : 'text-emerald-700'}>
+                  <span className={centralSupplyMetrics.foodStatus === 'Critical' ? 'text-red-600 font-extrabold' : 'text-emerald-700'}>
                     Food: {centralSupplyMetrics.foodStatus}
                   </span>
                   <span className="text-slate-300">&bull;</span>
-                  <span className={centralSupplyMetrics.medStatus === 'Critical' ? 'text-red-600' : 'text-emerald-700'}>
+                  <span className={centralSupplyMetrics.medStatus === 'Critical' ? 'text-red-600 font-extrabold' : 'text-emerald-700'}>
                     Med: {centralSupplyMetrics.medStatus}
                   </span>
                 </div>
 
                 <Link
                   href="/authority/supplies"
-                  className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-colors shadow-xs flex items-center gap-1.5"
+                  className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all duration-180 shadow-xs hover:shadow-sm active:scale-95 flex items-center gap-1.5"
                 >
                   <span>Supplies Hub</span>
                   <ArrowRight className="w-3.5 h-3.5" />
@@ -322,38 +329,38 @@ export default function AuthorityDashboardPage() {
               </div>
             </div>
 
-            {/* Compact Shelter Resource Overview */}
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            {/* Compact Shelter Resource Overview Banner */}
+            <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all duration-200 hover:border-slate-300">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl border border-blue-100 shadow-xs">
+                <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl border border-blue-100 shadow-2xs">
                   <Home className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-sm text-slate-900">National Relief & Shelter Inventory</h3>
-                  <p className="text-xs text-slate-500">Live capacity and intake saturation across nationwide safe havens</p>
+                  <h3 className="font-extrabold text-sm text-slate-900 tracking-tight">National Relief & Shelter Inventory</h3>
+                  <p className="text-xs text-slate-500 mt-0.5">Live capacity and intake saturation across nationwide safe havens</p>
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-3">
-                <div className="px-3 py-1.5 bg-slate-50 rounded-xl border border-slate-100 text-center">
-                  <span className="text-[10px] text-slate-500 font-bold uppercase block">Total Shelters</span>
-                  <span className="text-sm font-bold font-mono text-slate-900">{shelterMetrics.total}</span>
+              <div className="flex flex-wrap items-center gap-2.5">
+                <div className="px-3 py-1.5 bg-slate-50 rounded-xl border border-slate-200/60 text-center shadow-2xs">
+                  <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Total Shelters</span>
+                  <span className="text-sm font-black font-mono text-slate-900">{shelterMetrics.total}</span>
                 </div>
-                <div className="px-3 py-1.5 bg-slate-50 rounded-xl border border-slate-100 text-center">
-                  <span className="text-[10px] text-slate-500 font-bold uppercase block">Total Capacity</span>
-                  <span className="text-sm font-bold font-mono text-slate-900">{shelterMetrics.totalCap.toLocaleString()}</span>
+                <div className="px-3 py-1.5 bg-slate-50 rounded-xl border border-slate-200/60 text-center shadow-2xs">
+                  <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Total Capacity</span>
+                  <span className="text-sm font-black font-mono text-slate-900">{shelterMetrics.totalCap.toLocaleString()}</span>
                 </div>
-                <div className="px-3 py-1.5 bg-emerald-50 rounded-xl border border-emerald-100 text-center">
-                  <span className="text-[10px] text-emerald-700 font-bold uppercase block">Available Vacancies</span>
-                  <span className="text-sm font-bold font-mono text-emerald-700">{shelterMetrics.totalAvail.toLocaleString()}</span>
+                <div className="px-3 py-1.5 bg-emerald-50 rounded-xl border border-emerald-200/80 text-center shadow-2xs">
+                  <span className="text-[9px] text-emerald-700 font-bold uppercase tracking-wider block">Available Vacancies</span>
+                  <span className="text-sm font-black font-mono text-emerald-700">{shelterMetrics.totalAvail.toLocaleString()}</span>
                 </div>
-                <div className="px-3 py-1.5 bg-amber-50 rounded-xl border border-amber-100 text-center">
-                  <span className="text-[10px] text-amber-700 font-bold uppercase block">Capacity Alerts (&gt;85%)</span>
-                  <span className="text-sm font-bold font-mono text-amber-700">{shelterMetrics.criticalShortages}</span>
+                <div className="px-3 py-1.5 bg-amber-50 rounded-xl border border-amber-200/80 text-center shadow-2xs">
+                  <span className="text-[9px] text-amber-700 font-bold uppercase tracking-wider block">Capacity Alerts (&gt;85%)</span>
+                  <span className="text-sm font-black font-mono text-amber-700">{shelterMetrics.criticalShortages}</span>
                 </div>
                 <Link
                   href="/authority/shelters"
-                  className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-colors shadow-xs flex items-center gap-1.5"
+                  className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all duration-180 shadow-xs hover:shadow-sm active:scale-95 flex items-center gap-1.5"
                 >
                   <span>Shelters Hub</span>
                   <ArrowRight className="w-3.5 h-3.5" />
@@ -362,14 +369,14 @@ export default function AuthorityDashboardPage() {
             </div>
 
             {/* Tactical Geospatial Command Map */}
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 transition-all duration-200 hover:border-slate-300">
+            <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-5 transition-all duration-200 hover:border-slate-300">
               <div className="mb-4 flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
                 <div>
-                  <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <h2 className="text-base font-extrabold text-slate-900 flex items-center gap-2 tracking-tight">
                     <MapPin className="w-4 h-4 text-blue-600" />
                     Operational Situation Map
                   </h2>
-                  <p className="text-xs text-slate-500">Live geospatial telemetry across incidents, response squads, and shelters</p>
+                  <p className="text-xs text-slate-500 mt-0.5">Live geospatial telemetry across active incidents, response squads, and verified relief camps</p>
                 </div>
               </div>
               <CommandMap
@@ -384,15 +391,15 @@ export default function AuthorityDashboardPage() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
               {/* Left Column - Priority Queue */}
               <div className="lg:col-span-7 xl:col-span-8 flex flex-col">
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-xs flex flex-col h-full overflow-hidden transition-all duration-200 hover:border-slate-300">
-                  <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+                <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs flex flex-col h-full overflow-hidden transition-all duration-200 hover:border-slate-300">
+                  <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/40">
                     <div>
-                      <h2 className="text-base font-bold text-slate-800">Incident Priority Queue</h2>
-                      <p className="text-xs text-slate-500">Most critical active incidents requiring attention</p>
+                      <h2 className="text-base font-extrabold text-slate-900 tracking-tight">Incident Priority Queue</h2>
+                      <p className="text-xs text-slate-500 mt-0.5">Most critical active incidents requiring immediate dispatch or triage</p>
                     </div>
                     <Link
                       href="/authority/incidents"
-                      className="text-xs text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-1 transition-colors"
+                      className="text-xs text-blue-600 hover:text-blue-700 font-bold flex items-center gap-1 transition-colors hover:underline"
                     >
                       View All <ArrowRight className="w-3.5 h-3.5" />
                     </Link>
@@ -411,13 +418,13 @@ export default function AuthorityDashboardPage() {
                       </div>
                     ) : (
                       <table className="w-full text-left border-collapse">
-                        <thead className="bg-slate-50/75 text-slate-500 text-[11px] uppercase font-bold tracking-wider">
+                        <thead className="bg-slate-50/80 text-slate-500 text-[11px] uppercase font-bold tracking-wider border-b border-slate-100">
                           <tr>
-                            <th className="px-5 py-3 whitespace-nowrap">Priority</th>
-                            <th className="px-5 py-3 whitespace-nowrap">Incident</th>
-                            <th className="px-5 py-3 whitespace-nowrap">Location</th>
-                            <th className="px-5 py-3 whitespace-nowrap">Status</th>
-                            <th className="px-5 py-3 whitespace-nowrap text-right">Action</th>
+                            <th className="px-5 py-3.5 whitespace-nowrap">Priority</th>
+                            <th className="px-5 py-3.5 whitespace-nowrap">Incident</th>
+                            <th className="px-5 py-3.5 whitespace-nowrap">Location</th>
+                            <th className="px-5 py-3.5 whitespace-nowrap">Status</th>
+                            <th className="px-5 py-3.5 whitespace-nowrap text-right">Action</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 text-sm">
@@ -438,11 +445,11 @@ export default function AuthorityDashboardPage() {
                                 </td>
                                 <td className="px-5 py-3.5 min-w-[240px]">
                                   <div className="flex items-start gap-2.5">
-                                    <div className="mt-0.5 p-1.5 bg-slate-100 rounded-lg shrink-0 group-hover:scale-105 transition-transform">
+                                    <div className="mt-0.5 p-1.5 bg-slate-100 rounded-lg shrink-0 group-hover:scale-105 transition-transform border border-slate-200/60">
                                       {getDisasterIcon(incident.type)}
                                     </div>
                                     <div>
-                                      <div className="font-semibold text-slate-900 flex items-center gap-1.5 text-xs">
+                                      <div className="font-bold text-slate-900 flex items-center gap-1.5 text-xs">
                                         <span className="truncate max-w-[180px]" title={incident.title}>
                                           {incident.title}
                                         </span>
@@ -459,7 +466,7 @@ export default function AuthorityDashboardPage() {
                                   </div>
                                 </td>
                                 <td className="px-5 py-3.5 whitespace-nowrap">
-                                  <div className="flex items-center gap-1 text-slate-600 text-xs">
+                                  <div className="flex items-center gap-1.5 text-slate-600 text-xs font-medium">
                                     <MapPin className="w-3.5 h-3.5 text-slate-400" />
                                     <span>{incident.district}, {incident.state}</span>
                                   </div>
@@ -470,7 +477,7 @@ export default function AuthorityDashboardPage() {
                                 <td className="px-5 py-3.5 whitespace-nowrap text-right">
                                   <Link 
                                     href={`/authority/incidents/${incident._id}`}
-                                    className="inline-flex items-center gap-1 px-3 py-1.5 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-all duration-150 text-xs font-semibold shadow-2xs active:scale-[0.98]"
+                                    className="inline-flex items-center gap-1 px-3 py-1.5 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-all duration-150 text-xs font-bold shadow-2xs active:scale-[0.98]"
                                   >
                                     <Eye className="w-3.5 h-3.5" />
                                     View
@@ -489,8 +496,8 @@ export default function AuthorityDashboardPage() {
               {/* Right Column - Ops & Activity */}
               <div className="lg:col-span-5 xl:col-span-4 flex flex-col space-y-6">
                 {/* Response Operations Summary */}
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 transition-all duration-200 hover:border-slate-300">
-                  <h2 className="text-base font-bold text-slate-800 mb-3.5 flex items-center gap-2">
+                <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-5 transition-all duration-200 hover:border-slate-300">
+                  <h2 className="text-base font-extrabold text-slate-900 mb-3.5 flex items-center gap-2 tracking-tight">
                     <TrendingUp className="w-4 h-4 text-blue-600" />
                     Response Operations
                   </h2>
@@ -502,41 +509,41 @@ export default function AuthorityDashboardPage() {
                     </div>
                   ) : (
                     <div className="space-y-2.5">
-                      <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-50/60 border border-emerald-100/80 transition-all duration-150 hover:bg-emerald-50">
+                      <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-50/60 border border-emerald-100/80 transition-all duration-150 hover:bg-emerald-50 shadow-2xs">
                         <div className="flex items-center gap-2.5">
                           <PulsingDot variant="live" size="sm" />
-                          <span className="text-xs font-semibold text-emerald-900">Available Teams</span>
+                          <span className="text-xs font-bold text-emerald-900">Available Teams</span>
                         </div>
-                        <span className="text-base font-bold text-emerald-700">{stats.activeResponseTeams}</span>
+                        <span className="text-base font-black font-mono text-emerald-700">{stats.activeResponseTeams}</span>
                       </div>
                       
-                      <div className="flex items-center justify-between p-3 rounded-xl bg-purple-50/60 border border-purple-100/80 transition-all duration-150 hover:bg-purple-50">
+                      <div className="flex items-center justify-between p-3 rounded-xl bg-purple-50/60 border border-purple-100/80 transition-all duration-150 hover:bg-purple-50 shadow-2xs">
                         <div className="flex items-center gap-2.5">
                           <span className="w-2 h-2 rounded-full bg-purple-500" />
-                          <span className="text-xs font-semibold text-purple-900">Active Dispatches</span>
+                          <span className="text-xs font-bold text-purple-900">Active Dispatches</span>
                         </div>
-                        <span className="text-base font-bold text-purple-700">{stats.dispatchedIncidents}</span>
+                        <span className="text-base font-black font-mono text-purple-700">{stats.dispatchedIncidents}</span>
                       </div>
                       
-                      <div className="flex items-center justify-between p-3 rounded-xl bg-blue-50/60 border border-blue-100/80 transition-all duration-150 hover:bg-blue-50">
+                      <div className="flex items-center justify-between p-3 rounded-xl bg-blue-50/60 border border-blue-100/80 transition-all duration-150 hover:bg-blue-50 shadow-2xs">
                         <div className="flex items-center gap-2.5">
                           <span className="w-2 h-2 rounded-full bg-blue-500" />
-                          <span className="text-xs font-semibold text-blue-900">In Action</span>
+                          <span className="text-xs font-bold text-blue-900">In Action</span>
                         </div>
-                        <span className="text-base font-bold text-blue-700">{stats.inProgressIncidents || 0}</span>
+                        <span className="text-base font-black font-mono text-blue-700">{stats.inProgressIncidents || 0}</span>
                       </div>
                     </div>
                   )}
                 </div>
 
                 {/* Recent Activity Feed */}
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-xs flex flex-col flex-1 max-h-[480px] transition-all duration-200 hover:border-slate-300">
-                  <div className="p-5 border-b border-slate-100 flex items-center justify-between">
-                    <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
+                <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs flex flex-col flex-1 max-h-[480px] transition-all duration-200 hover:border-slate-300">
+                  <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/40">
+                    <h2 className="text-base font-extrabold text-slate-900 flex items-center gap-2 tracking-tight">
                       <Activity className="w-4 h-4 text-slate-500" />
                       Live Activity Feed
                     </h2>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
                       Realtime
                     </span>
                   </div>
@@ -563,12 +570,12 @@ export default function AuthorityDashboardPage() {
                       <div className="relative space-y-5 before:absolute before:inset-0 before:ml-[14px] before:-translate-x-px before:h-full before:w-0.5 before:bg-slate-100">
                         {activities.map((activity) => (
                           <div key={activity._id} className="relative flex items-start gap-3.5 group">
-                            <div className="relative z-10 w-7 h-7 rounded-full bg-white border border-slate-200 flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+                            <div className="relative z-10 w-7 h-7 rounded-full bg-white border border-slate-200/90 flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
                               {getActivityIcon(activity.action)}
                             </div>
                             <div className="min-w-0 flex-1">
-                              <p className="text-xs text-slate-800 font-medium leading-snug">{activity.description}</p>
-                              <span className="text-[10px] text-slate-400 block mt-0.5">
+                              <p className="text-xs text-slate-800 font-semibold leading-snug">{activity.description}</p>
+                              <span className="text-[10px] text-slate-400 font-medium block mt-0.5">
                                 {formatRelativeTime(activity.createdAt)}
                               </span>
                             </div>

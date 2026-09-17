@@ -23,7 +23,7 @@ export function IncidentStatusBadge({ status }: { status: IncidentStatus }) {
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border transition-colors duration-150 ${colorClass}`}
+      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold border transition-colors duration-150 ${colorClass}`}
     >
       {status === 'in_progress' && <PulsingDot variant="blue" size="sm" />}
       {status === 'verified' && <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />}
@@ -43,8 +43,8 @@ export function SeverityBadge({ severity }: { severity: IncidentSeverity }) {
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border transition-all duration-150 ${colorClass} ${
-        isCritical ? 'shadow-xs shadow-red-100' : ''
+      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold border transition-all duration-150 ${colorClass} ${
+        isCritical ? 'shadow-xs shadow-red-100 ring-1 ring-red-300/50' : ''
       }`}
     >
       {isCritical ? (
@@ -81,14 +81,14 @@ export function PriorityBadge({
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold border transition-all duration-150 ${colorClass} ${
-        isP0 ? 'shadow-xs shadow-red-100 ring-1 ring-red-300/60' : ''
+      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold border transition-all duration-150 ${colorClass} ${
+        isP0 ? 'shadow-xs shadow-red-100 ring-1 ring-red-400/60 font-black' : ''
       }`}
     >
       {isP0 && <PulsingDot variant="critical" size="sm" />}
-      <span className="font-mono">{resolvedLevel}</span>
+      <span className="font-mono tracking-tight">{resolvedLevel}</span>
       <span className="hidden sm:inline text-slate-300">·</span>
-      <span className="hidden sm:inline">{label}</span>
+      <span className="hidden sm:inline text-[10px] font-semibold">{label}</span>
     </span>
   );
 }
@@ -102,7 +102,7 @@ export function DispatchStatusBadge({ status }: { status: DispatchStatus }) {
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border transition-colors duration-150 ${colorClass}`}
+      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold border transition-colors duration-150 ${colorClass}`}
     >
       {isActiveOperation && <PulsingDot variant={status === 'in_progress' ? 'warning' : 'blue'} size="sm" />}
       {status === 'completed' && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />}
@@ -120,7 +120,7 @@ export function TeamStatusBadge({ status }: { status: TeamStatus }) {
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border transition-colors duration-150 ${colorClass}`}
+      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold border transition-colors duration-150 ${colorClass}`}
     >
       <PulsingDot
         variant={status === 'available' ? 'live' : status === 'busy' ? 'busy' : 'offline'}
@@ -147,11 +147,11 @@ export function JurisdictionBadge({
 
   return (
     <div className="inline-flex items-center gap-2 text-xs">
-      <span className="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 font-semibold border border-blue-200">
+      <span className="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 font-bold text-[10px] uppercase tracking-wider border border-blue-200/80 shadow-2xs">
         {levelLabel}
       </span>
       {state && (
-        <span className="text-slate-500 font-medium">
+        <span className="text-slate-600 font-semibold text-xs flex items-center gap-1">
           {district ? `${district}, ${state}` : state}
         </span>
       )}
@@ -163,9 +163,10 @@ export function JurisdictionBadge({
 
 export function SOSIndicator() {
   return (
-    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-red-50 text-red-700 border border-red-200 shadow-xs shadow-red-100">
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-red-600 text-white shadow-xs shadow-red-500/20 animate-pulse">
       <PulsingDot variant="critical" size="sm" />
       SOS
     </span>
   );
 }
+
