@@ -16,11 +16,27 @@ exports.protect = async (req, res, next) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    req.user = await User.findById(decoded.id).select("-password");
+    const user = await User.findById(decoded.id).select("-password");
 
-    if (!req.user) {
+    if (!user) {
       return res.status(401).json({ message: "User not found" });
     }
+
+    // Attach verified token claims
+    req.tokenClaims = decoded;
+
+    // Ensure jurisdictionId is consistently populated on req.user
+    if (!user.jurisdictionId && decoded.jurisdictionId) {
+      user.jurisdictionId = decoded.jurisdictionId;
+    } else if (!user.jurisdictionId && user.role === "authority") {
+      if (user.state && user.district) {
+        user.jurisdictionId = `${user.state}_${user.district}`.toUpperCase().replace(/\s+/g, "_");
+      } else if (user.state) {
+        user.jurisdictionId = `${user.state}`.toUpperCase().replace(/\s+/g, "_");
+      }
+    }
+
+    req.user = user;
 
     next();
   } catch (error) {
@@ -38,34 +54,37 @@ exports.authorize = (...allowedRoles) => {
   };
 };
 
-exports.scopeByJurisdiction = (req, res, next) => {
-  const user = req.user;
-
-  if (user.role === "admin") {
-    req.jurisdictionFilter = {};
-    return next();
-  }
-
-  if (user.role === "authority") {
-    switch (user.authorityLevel) {
-      case "state":
-        req.jurisdictionFilter = { state: user.jurisdiction };
-        break;
-      case "district":
-        req.jurisdictionFilter = { district: user.jurisdiction };
-        break;
-      case "field_responder":
-        req.jurisdictionFilter = { assignedTo: user._id };
-        break;
-      case "department":
-        req.jurisdictionFilter = { assignedDepartment: user.departmentId };
-        break;
-      default:
-        req.jurisdictionFilter = { _id: null };
+// Optional auth: attaches user if token is present, does not fail if no token
+exports.optionalProtect = async (req, res, next) => {
+  try {
+    let token;
+    if (req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
+      token = req.headers.authorization.split(" ")[1];
     }
-    return next();
-  }
 
-  req.jurisdictionFilter = { _id: null };
-  next();
+    if (!token) {
+      return next();
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id).select("-password");
+
+    if (user) {
+      req.tokenClaims = decoded;
+      if (!user.jurisdictionId && decoded.jurisdictionId) {
+        user.jurisdictionId = decoded.jurisdictionId;
+      } else if (!user.jurisdictionId && user.role === "authority") {
+        if (user.state && user.district) {
+          user.jurisdictionId = `${user.state}_${user.district}`.toUpperCase().replace(/\s+/g, "_");
+        } else if (user.state) {
+          user.jurisdictionId = `${user.state}`.toUpperCase().replace(/\s+/g, "_");
+        }
+      }
+      req.user = user;
+    }
+    next();
+  } catch (error) {
+    // If token invalid in optional route, proceed unauthenticated
+    next();
+  }
 };
