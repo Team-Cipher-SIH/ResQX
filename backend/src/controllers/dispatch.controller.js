@@ -531,10 +531,281 @@ const getActiveDispatches = async (req, res) => {
   }
 };
 
+// Haversine formula for distance fallback calculation in km
+const calculateDistanceKm = (coord1, coord2) => {
+  if (!coord1 || !coord2 || coord1.length < 2 || coord2.length < 2) return null;
+  const [lon1, lat1] = coord1;
+  const [lon2, lat2] = coord2;
+  const R = 6371; // Earth radius in KM
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
+
+// Recommend candidate response teams for an incident (read-only)
+const recommendTeamsForIncident = async (req, res) => {
+  try {
+    const { incidentId } = req.params;
+
+    if (!validateObjectId(incidentId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid incident ID format",
+      });
+    }
+
+    // 1. Fetch Incident
+    const incident = await Incident.findById(incidentId);
+    if (!incident) {
+      return res.status(404).json({
+        success: false,
+        message: "Incident not found",
+      });
+    }
+
+    // 2. Check Authority Jurisdiction Access
+    if (!checkJurisdictionAccess(req.user, incident)) {
+      return res.status(403).json({
+        success: false,
+        message: "Forbidden: You do not have jurisdiction over this incident",
+      });
+    }
+
+    // 3. Check for active (non-terminal) dispatch
+    const activeDispatch = await Dispatch.findOne({
+      incident: incident._id,
+      status: { $in: ["pending", "accepted", "en_route", "on_site", "in_progress"] },
+    }).populate("team", "name type status");
+    const hasActiveDispatch = !!activeDispatch;
+
+    // 4. Prepare Disaster Capability Keywords
+    const disasterType = (incident.type || "").toLowerCase().trim();
+    const disasterKeywords = [
+      disasterType,
+      `${disasterType} rescue`,
+      "rescue",
+      "general",
+      "emergency",
+      "all",
+    ];
+
+    if (disasterType === "flood") {
+      disasterKeywords.push("water rescue", "boat rescue", "flood rescue", "evacuation");
+    } else if (disasterType === "fire") {
+      disasterKeywords.push("firefighting", "smoke rescue", "hazmat", "burn rescue");
+    } else if (disasterType === "earthquake") {
+      disasterKeywords.push("collapse rescue", "rubble search", "structural rescue");
+    } else if (disasterType === "landslide") {
+      disasterKeywords.push("debris rescue", "earth excavation", "search and rescue");
+    } else if (disasterType === "cyclone") {
+      disasterKeywords.push("storm rescue", "evacuation", "flood rescue");
+    }
+
+    const capabilityRegexes = disasterKeywords.map((kw) => new RegExp(kw, "i"));
+
+    const hasValidCoordinates =
+      incident.location &&
+      Array.isArray(incident.location.coordinates) &&
+      incident.location.coordinates.length === 2 &&
+      typeof incident.location.coordinates[0] === "number" &&
+      typeof incident.location.coordinates[1] === "number";
+    const incidentCoordinates = hasValidCoordinates ? incident.location.coordinates : null;
+
+    // Helper to query teams with $geoNear and graceful Haversine fallback
+    const runCandidateQuery = async (matchFilter) => {
+      if (hasValidCoordinates) {
+        try {
+          return await ResponseTeam.aggregate([
+            {
+              $geoNear: {
+                near: {
+                  type: "Point",
+                  coordinates: incidentCoordinates,
+                },
+                distanceField: "distanceMeters",
+                spherical: true,
+                key: "currentLocation",
+                query: matchFilter,
+              },
+            },
+            {
+              $lookup: {
+                from: "users",
+                localField: "leader",
+                foreignField: "_id",
+                as: "leaderInfo",
+              },
+            },
+            {
+              $unwind: {
+                path: "$leaderInfo",
+                preserveNullAndEmptyArrays: true,
+              },
+            },
+          ]);
+        } catch (geoErr) {
+          console.warn("MongoDB $geoNear failed, falling back to Haversine sort:", geoErr.message);
+        }
+      }
+
+      // Fallback find
+      const teams = await ResponseTeam.find(matchFilter)
+        .populate("leader", "name email phone role")
+        .lean();
+
+      return teams
+        .map((team) => {
+          const distKm =
+            hasValidCoordinates && team.currentLocation?.coordinates
+              ? calculateDistanceKm(incidentCoordinates, team.currentLocation.coordinates)
+              : null;
+          return {
+            ...team,
+            leaderInfo: team.leader,
+            distanceMeters: distKm !== null ? Math.round(distKm * 1000) : null,
+          };
+        })
+        .sort((a, b) => (a.distanceMeters ?? 999999999) - (b.distanceMeters ?? 999999999));
+    };
+
+    // 5. Query candidate teams in district first
+    let searchScope = "district";
+    const districtMatch = {
+      state: incident.state,
+      district: incident.district,
+      status: "available",
+      $or: [
+        { capabilities: { $in: [disasterType, ...disasterKeywords, ...capabilityRegexes] } },
+        { type: { $in: [disasterType, "rescue", "general"] } },
+      ],
+    };
+
+    let candidateTeams = await runCandidateQuery(districtMatch);
+
+    // 6. Edge case: If no teams found in district, widen search to state
+    if (candidateTeams.length === 0) {
+      const stateMatch = {
+        state: incident.state,
+        status: "available",
+        $or: [
+          { capabilities: { $in: [disasterType, ...disasterKeywords, ...capabilityRegexes] } },
+          { type: { $in: [disasterType, "rescue", "general"] } },
+        ],
+      };
+      candidateTeams = await runCandidateQuery(stateMatch);
+      if (candidateTeams.length > 0) {
+        searchScope = "state";
+      }
+    }
+
+    // 7. Format Candidate Teams
+    const formattedTeams = candidateTeams.map((team) => {
+      const distMeters =
+        team.distanceMeters !== undefined && team.distanceMeters !== null
+          ? Math.round(team.distanceMeters)
+          : null;
+      const distKm = distMeters !== null ? parseFloat((distMeters / 1000).toFixed(2)) : null;
+
+      const teamCaps = team.capabilities || [];
+      const matchedCaps = teamCaps.filter(
+        (cap) =>
+          disasterKeywords.some((kw) => cap.toLowerCase().includes(kw)) ||
+          cap.toLowerCase() === disasterType ||
+          cap.toLowerCase() === "rescue" ||
+          cap.toLowerCase() === "general"
+      );
+
+      if (
+        matchedCaps.length === 0 &&
+        (team.type === disasterType || team.type === "rescue" || team.type === "general")
+      ) {
+        matchedCaps.push(`Team Type: ${team.type}`);
+      }
+
+      return {
+        _id: team._id,
+        name: team.name,
+        type: team.type,
+        state: team.state,
+        district: team.district,
+        status: team.status,
+        capabilities: team.capabilities || [],
+        matchedCapabilities: matchedCaps,
+        currentLocation: team.currentLocation,
+        distanceMeters: distMeters,
+        distanceKm: distKm,
+        leader: team.leaderInfo
+          ? {
+              _id: team.leaderInfo._id,
+              name: team.leaderInfo.name,
+              phone: team.leaderInfo.phone,
+              email: team.leaderInfo.email,
+            }
+          : team.leader && typeof team.leader === "object"
+          ? {
+              _id: team.leader._id,
+              name: team.leader.name,
+              phone: team.leader.phone,
+              email: team.leader.email,
+            }
+          : null,
+        membersCount: Array.isArray(team.members) ? team.members.length : 0,
+        reasons: [], // Left for AI/ML teammate
+        confidence: null, // Left for AI/ML teammate
+      };
+    });
+
+    let message = `Found ${formattedTeams.length} candidate team(s) in ${
+      searchScope === "state" ? `${incident.state} state` : `${incident.district} district`
+    }`;
+    if (formattedTeams.length === 0) {
+      message = `No available response teams found matching capability "${disasterType}" in ${incident.district} or ${incident.state}`;
+    }
+
+    return res.status(200).json({
+      success: true,
+      incidentId: incident._id,
+      disasterType: incident.type,
+      jurisdiction: {
+        state: incident.state,
+        district: incident.district,
+      },
+      hasActiveDispatch,
+      activeDispatch: activeDispatch
+        ? {
+            _id: activeDispatch._id,
+            status: activeDispatch.status,
+            team: activeDispatch.team,
+            dispatchedAt: activeDispatch.dispatchedAt,
+          }
+        : null,
+      searchScope,
+      count: formattedTeams.length,
+      data: formattedTeams,
+      message,
+    });
+  } catch (error) {
+    console.error("Error in recommendTeamsForIncident:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error while fetching team recommendations",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   createDispatch,
   getDispatches,
   getDispatchById,
   updateDispatchStatus,
   getActiveDispatches,
+  recommendTeamsForIncident,
 };

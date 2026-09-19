@@ -36,13 +36,24 @@ const activityLogSchema = new mongoose.Schema(
         "supply_updated",
         "supply_deactivated",
         "supply_activated",
+        "user_login",
+        "user_logout",
       ],
     },
     description: { type: String, required: true },
     performedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      default: null,
+    },
+    targetType: {
+      type: String,
+      enum: ["incident", "dispatch", "team", "shelter", "alert", "supply", "auth", "other"],
+      default: "other",
+    },
+    targetId: {
+      type: mongoose.Schema.Types.Mixed,
+      default: null,
     },
     incident: {
       type: mongoose.Schema.Types.ObjectId,
@@ -68,5 +79,7 @@ const activityLogSchema = new mongoose.Schema(
 
 activityLogSchema.index({ state: 1, district: 1, createdAt: -1 });
 activityLogSchema.index({ action: 1, createdAt: -1 });
+activityLogSchema.index({ targetType: 1, targetId: 1, createdAt: -1 });
+activityLogSchema.index({ performedBy: 1, createdAt: -1 });
 
 module.exports = mongoose.model("ActivityLog", activityLogSchema);

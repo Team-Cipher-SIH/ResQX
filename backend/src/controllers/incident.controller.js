@@ -34,6 +34,54 @@ const parseAndValidateCoordinates = (coordinates) => {
   return { valid: true, coordinates: [lng, lat] };
 };
 
+// Asynchronous background AI worker (non-blocking)
+const runBackgroundAiVerification = async (incidentId) => {
+  try {
+    const incident = await Incident.findById(incidentId);
+    if (!incident) return;
+
+    try {
+      const result = await verifyIncidentAuthenticity(incident);
+      incident.aiAnalysis = {
+        status: "completed",
+        isEmergency: result.isEmergency !== undefined ? result.isEmergency : true,
+        emergencyRelevanceReason: result.emergencyRelevanceReason || null,
+        classifiedType: result.classifiedType || incident.type,
+        predictedType: result.classifiedType || incident.type,
+        aiSeverity: result.aiSeverity || "MEDIUM",
+        predictedSeverity: result.aiSeverity || "MEDIUM",
+        aiPriority: result.aiPriority || "P2",
+        recommendedTeam: result.recommendedTeam || null,
+        aiSummary: result.aiSummary || result.summary || null,
+        summary: result.aiSummary || result.summary || null,
+        authenticity: result.authenticity || "LIKELY_GENUINE",
+        credibilityScore: result.credibilityScore ?? null,
+        confidence: result.confidence ?? null,
+        reasoning: result.reasoning || null,
+        recommendedAction: result.recommendedAction || null,
+        suggestedUnit: result.suggestedUnit || null,
+        analyzedAt: new Date(),
+      };
+      await incident.save();
+
+      // Emit realtime update to jurisdiction rooms
+      try {
+        emitToJurisdiction(incident.state, incident.district, "incident-updated", incident);
+      } catch (e) {}
+    } catch (aiErr) {
+      console.warn(`[AI-Verification] Background AI failed for incident ${incidentId}:`, aiErr.message);
+      incident.aiAnalysis = {
+        ...(incident.aiAnalysis?.toObject ? incident.aiAnalysis.toObject() : incident.aiAnalysis || {}),
+        status: "failed",
+        analyzedAt: new Date(),
+      };
+      await incident.save();
+    }
+  } catch (err) {
+    console.error(`[AI-Verification] Error running background AI for incident ${incidentId}:`, err.message);
+  }
+};
+
 // POST /api/incidents/report
 const createIncident = async (req, res) => {
   try {
@@ -93,6 +141,9 @@ const createIncident = async (req, res) => {
       district: district.trim(),
       mediaUrls,
       reportedBy: req.user._id,
+      aiAnalysis: {
+        status: "pending",
+      },
       statusHistory: [
         {
           status: "reported",
@@ -103,19 +154,24 @@ const createIncident = async (req, res) => {
       ],
     });
 
-    // Auto-run AI Authenticity and Triage Verification
-    try {
-      const aiAnalysis = await verifyIncidentAuthenticity(incident);
-      incident.aiAnalysis = aiAnalysis;
-      await incident.save();
-    } catch (aiErr) {
-      console.warn("AI verification on creation skipped:", aiErr.message);
-    }
+    // Send immediate response to client (sub-50ms)
+    res.status(201).json({
+      success: true,
+      message: "Incident reported successfully",
+      data: incident,
+    });
 
-    // Create activity log
+    // Fire non-blocking AI verification in background
+    setImmediate(() => {
+      runBackgroundAiVerification(incident._id);
+    });
+
+    // Create activity log in background
     try {
       await ActivityLog.create({
         action: "incident_reported",
+        targetType: "incident",
+        targetId: incident._id,
         description: `Incident reported: ${incident.title}`,
         performedBy: req.user._id,
         incident: incident._id,
@@ -129,15 +185,10 @@ const createIncident = async (req, res) => {
     // Emit real-time event to relevant rooms
     try {
       emitToJurisdiction(incident.state, incident.district, "new-incident", incident);
+      emitToJurisdiction(incident.state, incident.district, "incident-created", incident);
     } catch (sockErr) {
       console.error("Socket emission error on createIncident:", sockErr.message);
     }
-
-    return res.status(201).json({
-      success: true,
-      message: "Incident reported successfully",
-      data: incident,
-    });
   } catch (err) {
     return res.status(500).json({
       success: false,
@@ -713,52 +764,133 @@ const createSOS = async (req, res) => {
   try {
     const { coordinates, type, state, district } = req.body;
 
-    if (!coordinates) {
-      return res.status(400).json({
-        success: false,
-        message: "coordinates are required for SOS",
+    let coords = req.validatedCoordinates;
+    if (!coords) {
+      if (!coordinates) {
+        return res.status(400).json({
+          success: false,
+          message: "coordinates are required for SOS [longitude, latitude]",
+        });
+      }
+      const coordResult = parseAndValidateCoordinates(coordinates);
+      if (!coordResult.valid) {
+        return res.status(400).json({
+          success: false,
+          message: coordResult.error,
+        });
+      }
+      coords = coordResult.coordinates;
+    }
+
+    // 1. Duplicate & Spam Detection: Check active SOS within 10 minutes and ~200 meters
+    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+    const orConditions = [
+      {
+        location: {
+          $near: {
+            $geometry: {
+              type: "Point",
+              coordinates: coords,
+            },
+            $maxDistance: 200, // 200 meters radius
+          },
+        },
+      },
+    ];
+
+    if (req.user) {
+      orConditions.push({ reportedBy: req.user._id });
+    }
+    if (req.guestSessionId) {
+      orConditions.push({ guestSessionId: req.guestSessionId });
+    }
+
+    let existingSOS = null;
+    try {
+      existingSOS = await Incident.findOne({
+        isSOS: true,
+        status: { $in: ["reported", "verified", "assigned", "in_progress"] },
+        createdAt: { $gte: tenMinutesAgo },
+        $or: orConditions,
+      });
+    } catch (geoErr) {
+      existingSOS = await Incident.findOne({
+        isSOS: true,
+        status: { $in: ["reported", "verified", "assigned", "in_progress"] },
+        createdAt: { $gte: tenMinutesAgo },
+        $or: [
+          ...(req.user ? [{ reportedBy: req.user._id }] : []),
+          ...(req.guestSessionId ? [{ guestSessionId: req.guestSessionId }] : []),
+        ],
       });
     }
 
-    const coordResult = parseAndValidateCoordinates(coordinates);
-    if (!coordResult.valid) {
-      return res.status(400).json({
-        success: false,
-        message: coordResult.error,
+    if (existingSOS) {
+      existingSOS.reportCount = (existingSOS.reportCount || 1) + 1;
+      await existingSOS.save();
+
+      return res.status(200).json({
+        success: true,
+        isDuplicate: true,
+        message: "An active SOS alert has already been registered in your immediate vicinity. Responders are notified.",
+        data: existingSOS,
+        guestSessionId: req.guestSessionId || null,
       });
     }
 
-    const userState = state || req.user.state || "Unknown";
-    const userDistrict = district || req.user.district || "Unknown";
+    // 2. Create Fresh SOS Incident
+    const userState = state || req.user?.state || "Unknown";
+    const userDistrict = district || req.user?.district || "Unknown";
 
     const incident = await Incident.create({
       title: "SOS Emergency Alert",
       description: "Emergency SOS triggered by citizen. Immediate attention required.",
       type: type || "other",
       severity: "critical", // SOS is always critical priority
-      status: "reported",
-      location: { type: "Point", coordinates: coordResult.coordinates },
+      status: "reported", // SOS stays reported until authority verification
+      location: { type: "Point", coordinates: coords },
       state: userState,
       district: userDistrict,
       isSOS: true,
-      reportedBy: req.user._id,
+      reportedBy: req.user ? req.user._id : null,
+      guestSessionId: req.guestSessionId || null,
       priorityScore: 50,
+      aiAnalysis: {
+        status: "pending",
+      },
       statusHistory: [
         {
           status: "reported",
           timestamp: new Date(),
-          updatedBy: req.user._id,
-          note: "SOS Alert triggered",
+          updatedBy: req.user ? req.user._id : null,
+          note: req.user
+            ? "SOS Alert triggered by citizen"
+            : `SOS Alert triggered by guest (${req.guestSessionId})`,
         },
       ],
     });
 
-    // Create activity log
+    // Send immediate response to client (sub-50ms)
+    res.status(201).json({
+      success: true,
+      message: "SOS alert sent successfully. Help is on the way.",
+      data: incident,
+      guestSessionId: req.guestSessionId || null,
+    });
+
+    // Fire non-blocking AI verification in background
+    setImmediate(() => {
+      runBackgroundAiVerification(incident._id);
+    });
+
+    // Create activity log in background
     try {
       await ActivityLog.create({
         action: "sos_triggered",
-        description: `Emergency SOS triggered by citizen at [${coordResult.coordinates.join(", ")}]`,
-        performedBy: req.user._id,
+        targetType: "incident",
+        targetId: incident._id,
+        description: `Emergency SOS triggered at [${coords.join(", ")}]`,
+        performedBy: req.user ? req.user._id : null,
         incident: incident._id,
         state: incident.state,
         district: incident.district,
@@ -771,15 +903,10 @@ const createSOS = async (req, res) => {
     try {
       emitToJurisdiction(incident.state, incident.district, "sos-alert", incident);
       emitToJurisdiction(incident.state, incident.district, "new-incident", incident);
+      emitToJurisdiction(incident.state, incident.district, "incident-created", incident);
     } catch (sockErr) {
       console.error("Socket emission error on createSOS:", sockErr.message);
     }
-
-    return res.status(201).json({
-      success: true,
-      message: "SOS alert sent successfully. Help is on the way.",
-      data: incident,
-    });
   } catch (err) {
     return res.status(500).json({
       success: false,
@@ -787,7 +914,9 @@ const createSOS = async (req, res) => {
       error: err.message,
     });
   }
-};// Public: limited fields, no auth required, for citizen-facing live map
+};
+
+// Public: limited fields, no auth required, for citizen-facing live map
 const getPublicIncidents = async (req, res) => {
   try {
     const { status } = req.query;
@@ -812,6 +941,49 @@ const getPublicIncidents = async (req, res) => {
   }
 };
 
+// POST /api/incidents/:id/ai-retry (Authority only re-analysis)
+const retryIncidentAI = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!validateObjectId(id)) {
+      return res.status(400).json({ success: false, message: "Invalid incident ID format" });
+    }
+
+    const incident = await Incident.findById(id);
+    if (!incident) {
+      return res.status(404).json({ success: false, message: "Incident not found" });
+    }
+
+    if (!checkJurisdictionAccess(req.user, incident)) {
+      return res.status(403).json({
+        success: false,
+        message: "Forbidden: You do not have jurisdiction over this incident",
+      });
+    }
+
+    incident.aiAnalysis = {
+      ...(incident.aiAnalysis?.toObject ? incident.aiAnalysis.toObject() : incident.aiAnalysis || {}),
+      status: "pending",
+    };
+    await incident.save();
+
+    setImmediate(() => {
+      runBackgroundAiVerification(incident._id);
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "AI triage re-analysis initiated in background",
+      data: incident,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: "Failed to initiate AI re-analysis",
+      error: err.message,
+    });
+  }
+};
 
 module.exports = {
   createIncident,
@@ -824,4 +996,5 @@ module.exports = {
   getIncidentStats,
   getMyIncidents,
   createSOS,
+  retryIncidentAI,
 };

@@ -9,6 +9,7 @@ const {
   getDispatchById,
   updateDispatchStatus,
   getActiveDispatches,
+  recommendTeamsForIncident,
 } = require("../controllers/dispatch.controller");
 
 router.post("/", protect, authorize("authority", "admin"), createDispatch);
@@ -16,6 +17,8 @@ router.post("/", protect, authorize("authority", "admin"), createDispatch);
 router.get("/active", protect, getActiveDispatches);
 
 router.get("/", protect, authorize("authority", "admin"), attachJurisdictionFilter, getDispatches);
+
+router.get("/recommend/:incidentId", protect, authorize("authority", "admin"), recommendTeamsForIncident);
 
 router.get("/:id", protect, getDispatchById);
 

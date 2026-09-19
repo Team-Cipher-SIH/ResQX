@@ -39,7 +39,13 @@ const incidentSchema = new mongoose.Schema(
     district: { type: String, required: true, trim: true },
 
     mediaUrls: [{ type: String }],
-    reportedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    reportedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    guestSessionId: { type: String, default: null, trim: true },
+    reportCount: { type: Number, default: 1 },
     verifiedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -70,14 +76,21 @@ const incidentSchema = new mongoose.Schema(
     ],
     priorityScore: { type: Number, default: 0 },
     aiAnalysis: {
+      status: {
+        type: String,
+        enum: ["pending", "completed", "failed"],
+        default: "pending",
+      },
       isEmergency: { type: Boolean, default: true },
       emergencyRelevanceReason: { type: String, default: null },
       classifiedType: { type: String, default: null },
+      predictedType: { type: String, default: null },
       aiSeverity: {
         type: String,
         enum: ["LOW", "MEDIUM", "HIGH", "CRITICAL"],
         default: "MEDIUM",
       },
+      predictedSeverity: { type: String, default: null },
       aiPriority: {
         type: String,
         enum: ["P1", "P2", "P3", "P4"],
@@ -85,6 +98,7 @@ const incidentSchema = new mongoose.Schema(
       },
       recommendedTeam: { type: String, default: null },
       aiSummary: { type: String, default: null },
+      summary: { type: String, default: null },
       authenticity: {
         type: String,
         enum: ["LIKELY_GENUINE", "SUSPICIOUS_OR_PRANK", "NEEDS_PHYSICAL_VERIFICATION"],

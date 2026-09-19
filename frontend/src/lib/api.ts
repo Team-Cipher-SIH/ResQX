@@ -5,7 +5,20 @@
  * Handles Bearer token injection, 401 refresh token retry, and response envelope normalization.
  */
 
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api').replace(/\/+$/, '');
+export function getApiBaseUrl(): string {
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL.replace(/\/+$/, '');
+  }
+  if (typeof window !== 'undefined' && window.location?.hostname) {
+    const host = window.location.hostname;
+    if (host && host !== 'localhost' && host !== '127.0.0.1') {
+      return `http://${host}:5000/api`;
+    }
+  }
+  return 'http://localhost:5000/api';
+}
+
+const API_BASE_URL = getApiBaseUrl();
 
 export interface ApiResponse<T = unknown> {
   success: boolean;
@@ -68,7 +81,8 @@ async function refreshAccessToken(): Promise<string | null> {
   }
 
   try {
-    const refreshUrl = `${API_BASE_URL}/auth/refresh`;
+    const baseUrl = getApiBaseUrl();
+    const refreshUrl = `${baseUrl}/auth/refresh`;
     const response = await fetch(refreshUrl, {
       method: 'POST',
       headers: {
@@ -102,13 +116,14 @@ export async function fetchFromApi<T = unknown>(
   options?: RequestInit,
   isRetry = false
 ): Promise<ApiResponse<T>> {
-  // Normalize endpoint: ensure we don't duplicate /api if already in API_BASE_URL
+  const baseUrl = getApiBaseUrl();
+  // Normalize endpoint: ensure we don't duplicate /api if already in baseUrl
   let cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-  if (API_BASE_URL.endsWith('/api') && cleanEndpoint.startsWith('/api/')) {
+  if (baseUrl.endsWith('/api') && cleanEndpoint.startsWith('/api/')) {
     cleanEndpoint = cleanEndpoint.replace(/^\/api/, '');
   }
 
-  const url = `${API_BASE_URL}${cleanEndpoint}`;
+  const url = `${baseUrl}${cleanEndpoint}`;
 
   const token = getStoredAccessToken();
   const isFormData = typeof FormData !== 'undefined' && options?.body instanceof FormData;

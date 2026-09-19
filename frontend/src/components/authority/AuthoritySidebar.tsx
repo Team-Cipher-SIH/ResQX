@@ -31,7 +31,12 @@ interface NavItem {
   badge?: number;
 }
 
-export default function AuthoritySidebar() {
+interface AuthoritySidebarProps {
+  mobileOpen?: boolean;
+  onCloseMobile?: () => void;
+}
+
+export default function AuthoritySidebar({ mobileOpen = false, onCloseMobile }: AuthoritySidebarProps) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [userName, setUserName] = useState('Officer');
@@ -123,27 +128,49 @@ export default function AuthoritySidebar() {
   }, [authorityLevel]);
 
   return (
-    <aside
-      className={`fixed left-0 top-0 h-screen bg-white border-r border-slate-200 flex flex-col z-50 transition-all duration-300 ${
-        collapsed ? 'w-16' : 'w-64'
-      }`}
-    >
-      {/* Logo */}
-      <div className="flex items-center gap-2.5 px-4 py-4 border-b border-slate-100">
-        <Link href="/" className="flex items-center gap-2 group">
-          <div className="p-1.5 rounded-lg bg-blue-600 text-white shrink-0 transition-transform duration-200 group-hover:scale-105 shadow-xs shadow-blue-500/20">
-            <Shield className="w-4 h-4" />
-          </div>
-          {!collapsed && (
-            <div className="min-w-0">
-              <span className="font-extrabold text-sm tracking-tight text-slate-900 font-mono block">
-                ResQ<span className="text-blue-600">tech</span>
-              </span>
-              <span className="text-[10px] text-slate-400 block font-medium">Command Portal</span>
+    <>
+      {/* Mobile Backdrop */}
+      {mobileOpen && (
+        <div
+          className="lg:hidden fixed inset-0 z-40 bg-slate-900/60 backdrop-blur-xs transition-opacity animate-fade-in"
+          onClick={onCloseMobile}
+        />
+      )}
+
+      <aside
+        className={`fixed left-0 top-0 h-screen bg-white border-r border-slate-200 flex flex-col z-50 transition-transform lg:transition-all duration-300 ${
+          collapsed ? 'lg:w-16' : 'lg:w-64'
+        } ${
+          mobileOpen ? 'translate-x-0 w-64 shadow-2xl' : '-translate-x-full lg:translate-x-0 w-64'
+        }`}
+      >
+        {/* Logo */}
+        <div className="flex items-center justify-between gap-2.5 px-4 py-4 border-b border-slate-100">
+          <Link href="/" onClick={onCloseMobile} className="flex items-center gap-2 group">
+            <div className="p-1.5 rounded-lg bg-blue-600 text-white shrink-0 transition-transform duration-200 group-hover:scale-105 shadow-xs shadow-blue-500/20">
+              <Shield className="w-4 h-4" />
             </div>
+            {(!collapsed || mobileOpen) && (
+              <div className="min-w-0">
+                <span className="font-extrabold text-sm tracking-tight text-slate-900 font-mono block">
+                  ResQ<span className="text-blue-600">tech</span>
+                </span>
+                <span className="text-[10px] text-slate-400 block font-medium">Command Portal</span>
+              </div>
+            )}
+          </Link>
+
+          {/* Close button for mobile */}
+          {mobileOpen && (
+            <button
+              onClick={onCloseMobile}
+              className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+              title="Close navigation"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
           )}
-        </Link>
-      </div>
+        </div>
 
       {/* Live indicator */}
       {!collapsed && (
@@ -198,8 +225,8 @@ export default function AuthoritySidebar() {
         </div>
 
         {jurisdictionNavItems.length > 0 && (
-          <div className={`${collapsed ? '' : 'px-2'} pt-2 border-t border-slate-100`}>
-            {!collapsed && (
+          <div className={`${collapsed && !mobileOpen ? '' : 'px-2'} pt-2 border-t border-slate-100`}>
+            {(!collapsed || mobileOpen) && (
               <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400 mb-2">
                 Jurisdiction
               </p>
@@ -210,6 +237,7 @@ export default function AuthoritySidebar() {
                 <Link
                   key={item.href}
                   href={item.href}
+                  onClick={onCloseMobile}
                   title={item.label}
                   className={`relative flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 mb-0.5 ${
                     active
@@ -225,7 +253,7 @@ export default function AuthoritySidebar() {
                       active ? 'text-blue-600 scale-105' : 'text-slate-400 group-hover:text-slate-600'
                     }`}
                   />
-                  {!collapsed && <span>{item.label}</span>}
+                  {(!collapsed || mobileOpen) && <span>{item.label}</span>}
                 </Link>
               );
             })}
@@ -237,6 +265,7 @@ export default function AuthoritySidebar() {
       <div className="border-t border-slate-100 py-2 px-2">
         <Link
           href="/authority/profile"
+          onClick={onCloseMobile}
           title="Profile & Settings"
           className={`relative flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
             isActive('/authority/profile')
@@ -252,11 +281,11 @@ export default function AuthoritySidebar() {
               isActive('/authority/profile') ? 'text-blue-600 scale-105' : 'text-slate-400'
             }`}
           />
-          {!collapsed && <span>Profile & Settings</span>}
+          {(!collapsed || mobileOpen) && <span>Profile & Settings</span>}
         </Link>
 
         {/* User info */}
-        {!collapsed && (
+        {(!collapsed || mobileOpen) && (
           <div className="mx-2 mt-2 p-3 rounded-xl bg-slate-50 border border-slate-100">
             <div className="flex items-center gap-2.5">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-white text-xs font-bold shrink-0 shadow-xs">
@@ -283,14 +312,14 @@ export default function AuthoritySidebar() {
           className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors duration-150 w-full mt-1"
         >
           <LogOut className="w-4 h-4 shrink-0" />
-          {!collapsed && <span>Log Out</span>}
+          {(!collapsed || mobileOpen) && <span>Log Out</span>}
         </button>
       </div>
 
       {/* Collapse toggle */}
       <button
         onClick={() => setCollapsed(!collapsed)}
-        className="absolute -right-3 top-20 p-1 bg-white border border-slate-200 rounded-full shadow-xs hover:bg-slate-50 hover:border-slate-300 transition-all duration-200 z-10"
+        className="hidden lg:flex absolute -right-3 top-20 p-1 bg-white border border-slate-200 rounded-full shadow-xs hover:bg-slate-50 hover:border-slate-300 transition-all duration-200 z-10"
       >
         {collapsed ? (
           <ChevronRight className="w-3.5 h-3.5 text-slate-500" />
@@ -299,5 +328,6 @@ export default function AuthoritySidebar() {
         )}
       </button>
     </aside>
+  </>
   );
 }

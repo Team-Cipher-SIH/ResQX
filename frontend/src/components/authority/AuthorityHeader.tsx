@@ -44,11 +44,11 @@ export default function AuthorityHeader({ title, subtitle }: { title?: string; s
   }, []);
 
   return (
-    <header className="bg-white border-b border-slate-200 px-6 py-4">
-      <div className="flex items-center justify-between">
+    <header className="bg-white border-b border-slate-200 px-4 sm:px-6 py-3 sm:py-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <div className="flex items-center gap-3 mb-1">
-            <h1 className="text-xl font-bold text-slate-900">
+          <div className="flex items-center gap-2.5 mb-1 flex-wrap">
+            <h1 className="text-lg sm:text-xl font-bold text-slate-900">
               {title || 'Authority Command Center'}
             </h1>
             <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200">
@@ -59,13 +59,13 @@ export default function AuthorityHeader({ title, subtitle }: { title?: string; s
               <span className="text-[10px] font-bold text-emerald-700 uppercase">Live</span>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5 flex-wrap">
             {subtitle && <p className="text-xs text-slate-500">{subtitle}</p>}
             <JurisdictionBadge level={authorityLevel} state={state} district={district} />
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="hidden sm:flex items-center gap-4">
           <div className="flex items-center gap-1.5 text-slate-400">
             <Clock className="w-3.5 h-3.5" />
             <span className="text-xs font-mono">{currentTime}</span>

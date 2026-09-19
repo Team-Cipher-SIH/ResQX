@@ -2,8 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import Link from 'next/link';
 import AuthoritySidebar from '@/components/authority/AuthoritySidebar';
 import { getCurrentUser, isAuthorizedForRoute, getDefaultDashboardRoute } from '@/lib/auth';
+import { Menu, Shield, Radio } from 'lucide-react';
+import PulsingDot from '@/components/ui/PulsingDot';
 
 const PUBLIC_PATHS = ['/authority/login', '/authority/register'];
 
@@ -12,6 +15,7 @@ export default function AuthorityLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const isPublicPath = PUBLIC_PATHS.includes(pathname);
 
@@ -77,8 +81,43 @@ export default function AuthorityLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <AuthoritySidebar />
-      <main className="ml-64 min-h-screen transition-all duration-300">
+      {/* Mobile Top Navigation Header */}
+      <header className="lg:hidden sticky top-0 z-30 bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between shadow-xs">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setMobileMenuOpen(true)}
+            className="p-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition"
+            title="Open command menu"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+
+          <Link href="/" className="flex items-center gap-2">
+            <div className="p-1 rounded-md bg-blue-600 text-white shrink-0">
+              <Shield className="w-4 h-4" />
+            </div>
+            <span className="font-extrabold text-sm tracking-tight text-slate-900 font-mono">
+              ResQ<span className="text-blue-600">tech</span>
+            </span>
+          </Link>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <PulsingDot variant="live" size="sm" />
+          <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">
+            Live
+          </span>
+        </div>
+      </header>
+
+      {/* Sidebar (Desktop + Mobile sliding drawer) */}
+      <AuthoritySidebar
+        mobileOpen={mobileMenuOpen}
+        onCloseMobile={() => setMobileMenuOpen(false)}
+      />
+
+      {/* Main Content Area */}
+      <main className="lg:ml-64 min-h-screen transition-all duration-300 w-full overflow-x-hidden">
         {children}
       </main>
     </div>

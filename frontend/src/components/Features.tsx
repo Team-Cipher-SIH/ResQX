@@ -168,8 +168,8 @@ export default function Features() {
               </p>
             </div>
 
-            <span className="mt-4 rounded-lg border border-slate-200 bg-slate-100 px-3 py-1.5 font-mono text-xs text-slate-600 shadow-sm md:mt-0">
-              Scope: Phase 1 Frontend Structure
+            <span className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 font-mono text-xs font-semibold text-emerald-700 shadow-sm md:mt-0">
+              Enterprise Ready • 24/7 Operations
             </span>
           </div>
         </div>

@@ -219,7 +219,7 @@ export default function Footer() {
             <span>•</span>
 
             <span className="font-mono text-blue-400">
-              Phase 1 Next.js Frontend
+              National Emergency Response Core
             </span>
 
           </p>

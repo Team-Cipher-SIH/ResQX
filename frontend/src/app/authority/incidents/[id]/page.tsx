@@ -125,32 +125,32 @@ export default function IncidentDetailPage() {
       <AuthorityHeader />
       
       {/* Sticky Header */}
-      <div className="sticky top-0 z-10 bg-white border-b border-slate-200 shadow-sm px-6 py-4">
+      <div className="sticky top-0 z-10 bg-white border-b border-slate-200 shadow-sm px-4 sm:px-6 py-3 sm:py-4">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
+          <div className="flex items-start sm:items-center gap-3">
             <button 
               onClick={() => router.push('/authority/incidents')}
-              className="p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-colors active:scale-95"
+              className="p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-colors active:scale-95 shrink-0 mt-0.5 sm:mt-0"
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
-            <div>
-              <div className="flex items-center gap-3">
-                <h1 className="text-xl font-bold text-slate-900 truncate max-w-md">{incident.title}</h1>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-lg sm:text-xl font-bold text-slate-900 break-words">{incident.title}</h1>
                 <IncidentStatusBadge status={incident.status} />
                 <SeverityBadge severity={incident.severity} />
                 {incident.isSOS && <SOSIndicator />}
               </div>
-              <p className="text-sm text-slate-500 mt-1 font-mono">ID: {incident._id}</p>
+              <p className="text-xs text-slate-500 mt-1 font-mono">ID: {incident._id}</p>
             </div>
           </div>
           
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5 flex-wrap">
             {incident.status === 'reported' && (
               <button 
                 onClick={handleVerify}
                 disabled={isVerifying}
-                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 disabled:opacity-50 transition-all duration-180 hover:shadow-xs active:scale-95"
+                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white text-xs sm:text-sm font-medium rounded-xl hover:bg-emerald-700 disabled:opacity-50 transition-all duration-180 hover:shadow-xs active:scale-95"
               >
                 <Shield className="w-4 h-4" />
                 {isVerifying ? 'Verifying...' : 'Verify Incident'}
@@ -159,7 +159,7 @@ export default function IncidentDetailPage() {
             
             {incident.status === 'verified' && (
               <Link href={`/authority/dispatches?incident=${incident._id}`}>
-                <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-all duration-180 hover:shadow-xs active:scale-95">
+                <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-xs sm:text-sm font-medium rounded-xl hover:bg-blue-700 transition-all duration-180 hover:shadow-xs active:scale-95">
                   <Send className="w-4 h-4" />
                   Dispatch Team
                 </button>
@@ -169,7 +169,7 @@ export default function IncidentDetailPage() {
         </div>
       </div>
 
-      <main className="flex-1 p-6 animate-fade-in">
+      <main className="flex-1 p-3 sm:p-6 animate-fade-in w-full overflow-x-hidden">
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
           
           {/* Left Column (60%) */}

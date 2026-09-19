@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { MOCK_DISASTER_CATEGORIES } from '@/data/mockData';
 
@@ -106,13 +106,11 @@ export default function DisasterTypes() {
         =================================================== */}
         <div className="mx-auto mt-8 max-w-2xl rounded-xl border border-slate-200 bg-white p-4 text-center shadow-sm">
 
-          <p className="text-xs text-slate-500">
-            <span className="font-semibold text-slate-800">
-              Note:
+          <p className="text-xs text-slate-600">
+            <span className="font-semibold text-slate-900">
+              Emergency Protocol:
             </span>{' '}
-            Hazard categories shown are UI demonstration models.
-            Live telemetry feeds will be integrated via Express REST API
-            in Phase 2.
+            For immediate life-threatening emergencies, dial <span className="font-bold text-red-600">112</span> or broadcast an instant SOS beacon from your dashboard.
           </p>
 
         </div>

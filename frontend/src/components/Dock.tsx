@@ -61,7 +61,7 @@ function DockItem({
   label,
 }: DockItemProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const isHovered = useMotionValue(0);
+  const [isHovered, setIsHovered] = useState(false);
 
   const mouseDistance = useTransform(mouseX, (val) => {
     const rect = ref.current?.getBoundingClientRect() ?? {
@@ -96,10 +96,10 @@ function DockItem({
         width: size,
         height: size,
       }}
-      onHoverStart={() => isHovered.set(1)}
-      onHoverEnd={() => isHovered.set(0)}
-      onFocus={() => isHovered.set(1)}
-      onBlur={() => isHovered.set(0)}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      onFocus={() => setIsHovered(true)}
+      onBlur={() => setIsHovered(false)}
       onClick={onClick}
       onKeyDown={handleKeyDown}
       className={`
@@ -111,6 +111,7 @@ function DockItem({
         shadow-sm
         transition-shadow
         hover:shadow-md
+        cursor-pointer
         ${className}
       `}
       tabIndex={0}
@@ -128,7 +129,7 @@ function DockItem({
 
         return cloneElement(
           child as React.ReactElement<{
-            isHovered?: MotionValue<number>;
+            isHovered?: boolean;
           }>,
           {
             isHovered,
@@ -142,49 +143,40 @@ function DockItem({
 type DockLabelProps = {
   className?: string;
   children: React.ReactNode;
-  isHovered?: MotionValue<number>;
+  isHovered?: boolean;
 };
 
 function DockLabel({
   children,
   className = '',
-  isHovered,
+  isHovered = false,
 }: DockLabelProps) {
-  const [isVisible, setIsVisible] = useState(false);
-
-  useEffect(() => {
-    if (!isHovered) return;
-
-    const unsubscribe = isHovered.on(
-      'change',
-      (latest) => {
-        setIsVisible(latest === 1);
-      }
-    );
-
-    return () => unsubscribe();
-  }, [isHovered]);
-
   return (
     <AnimatePresence>
-      {isVisible && (
+      {isHovered && (
         <motion.div
           initial={{
             opacity: 0,
-            y: 0,
+            y: 4,
+            scale: 0.88,
           }}
           animate={{
             opacity: 1,
             y: -10,
+            scale: 1,
           }}
           exit={{
             opacity: 0,
-            y: 0,
+            y: 4,
+            scale: 0.88,
           }}
           transition={{
-            duration: 0.2,
+            type: 'spring',
+            stiffness: 400,
+            damping: 25,
           }}
           className={`
+            pointer-events-none
             absolute
             -top-7
             left-1/2
@@ -192,16 +184,18 @@ function DockLabel({
             w-fit
             -translate-x-1/2
             whitespace-nowrap
-            rounded-md
+            rounded-lg
             border
-            border-slate-700
-            bg-slate-900
-            px-2
+            border-slate-800
+            bg-slate-900/95
+            backdrop-blur-sm
+            px-2.5
             py-1
-            text-[10px]
-            font-medium
+            text-[11px]
+            font-bold
+            tracking-wide
             text-white
-            shadow-lg
+            shadow-xl
             ${className}
           `}
           role="tooltip"
