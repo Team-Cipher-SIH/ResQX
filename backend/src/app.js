@@ -22,6 +22,16 @@ app.use(
   })
 );
 
+// AI Microservice Proxy (resqtech-ai-service, port 4001)
+app.use(
+  "/api/ai-tools",
+  createProxyMiddleware({
+    target: "http://localhost:4001",
+    pathRewrite: { "^/api/ai-tools": "" },
+    changeOrigin: true
+  })
+);
+
 app.use(express.json());
 
 app.use("/api/auth", authRouter);
