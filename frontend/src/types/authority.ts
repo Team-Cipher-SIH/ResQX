@@ -224,6 +224,9 @@ export interface Alert {
   issuedBy: { _id: string; name: string } | string;
   startTime: string;
   endTime: string | null;
+  source?: 'manual' | 'ai_risk_prediction' | 'citizen_report'; 
+  status?: 'draft' | 'issued' | 'expired';
+  sourceRiskAssessment?: string | null; 
   isActive: boolean;
   createdAt: string;
   updatedAt: string;

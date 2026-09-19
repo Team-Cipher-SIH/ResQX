@@ -41,9 +41,26 @@ const alertSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
-    isActive: {
+        isActive: {
       type: Boolean,
       default: true,
+    },
+    // 🆕 Review workflow — AI-generated alerts start as draft, need authority approval
+    status: {
+      type: String,
+      enum: ["draft", "issued", "expired"],
+      default: "issued", // manual alerts (authority-created) go live immediately
+    },
+    // 🆕 for AI-triggered early warnings (traceability)
+    source: {
+      type: String,
+      enum: ["manual", "ai_risk_prediction", "citizen_report"],
+      default: "manual",
+    },
+    sourceRiskAssessment: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "RiskAssessment",
+      default: null,
     },
   },
   { timestamps: true }
