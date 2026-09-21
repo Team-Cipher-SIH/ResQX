@@ -4,18 +4,7 @@ import { useEffect, useRef, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { getStoredAccessToken } from '@/lib/api';
 
-export function getSocketUrl(): string {
-  if (process.env.NEXT_PUBLIC_API_URL) {
-    return process.env.NEXT_PUBLIC_API_URL.replace(/\/api\/?$/, '');
-  }
-  if (typeof window !== 'undefined' && window.location?.hostname) {
-    const host = window.location.hostname;
-    if (host && host !== 'localhost' && host !== '127.0.0.1') {
-      return `http://${host}:5000`;
-    }
-  }
-  return 'http://localhost:5000';
-}
+const SOCKET_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000').replace(/\/api\/?$/, '');
 
 let socket: Socket | null = null;
 
@@ -31,8 +20,7 @@ export function connectSocket(): Socket {
     throw new Error('No access token available for socket connection');
   }
 
-  const socketUrl = getSocketUrl();
-  socket = io(socketUrl, {
+  socket = io(SOCKET_URL, {
     auth: { token },
     transports: ['websocket', 'polling'],
     reconnection: true,
