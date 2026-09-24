@@ -1,4 +1,6 @@
-const express=require("express");
+const express = require("express");
+const { createProxyMiddleware } = require("http-proxy-middleware");
+
 const authRouter = require("./routes/auth.route.js");
 const incidentRoutes = require("./routes/incident.route.js");
 const alertRoutes = require("./routes/alert.route.js");
@@ -8,29 +10,49 @@ const helpPostRouter = require("./routes/helppost.route");
 const riskAssessmentRoutes = require('./routes/riskAssessment.routes');
 const preparednessRoutes = require('./routes/preparedness.route');
 const externalDataRoutes = require('./routes/externalData.route');
-const app=express();
+
+const app = express();
+
 const cors = require("cors");
 app.use(cors());
-app.use(express.json());
 
+// PWA Service Proxy Router (Must be placed before express.json parsing)
+app.use(
+  "/api/pwa-reports",
+  createProxyMiddleware({
+    target: "http://localhost:5003",
+    pathRewrite: { "^/api/pwa-reports": "/api/reports" },
+    changeOrigin: true
+  })
+);
+
+// AI Microservice Proxy (resqtech-ai-service, port 4001)
+app.use(
+  "/api/ai-tools",
+  createProxyMiddleware({
+    target: "http://localhost:4001",
+    pathRewrite: { "^/api/ai-tools": "" },
+    changeOrigin: true
+  })
+);
+
+app.use(express.json());
 
 app.use('/api/risk', riskAssessmentRoutes);
 app.use('/api/preparedness', preparednessRoutes);
 app.use('/api/external-data', externalDataRoutes);
-app.use("/api/auth",authRouter);
+app.use("/api/auth", authRouter);
 app.use("/api/incidents", incidentRoutes);
 app.use("/api/alerts", alertRoutes);
 app.use("/api/shelters", shelterRouter);
 app.use("/api/supplies", supplyRouter);
 app.use("/api/help-posts", helpPostRouter);
 
-
 const teamRoutes = require("./routes/responseteam.route.js");
 const dispatchRoutes = require("./routes/dispatch.route.js");
 const dashboardRoutes = require("./routes/dashboard.route.js");
 const aiRoutes = require("./routes/ai.route.js");
 const auditRoutes = require("./routes/audit.route.js");
-
 
 app.use("/api/teams", teamRoutes);
 app.use("/api/dispatches", dispatchRoutes);
