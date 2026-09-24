@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   MapContainer,
   TileLayer,
   Marker,
   Popup,
+  Circle,
   useMap,
 } from 'react-leaflet';
 import L from 'leaflet';
@@ -33,6 +34,21 @@ import type { Incident, ResponseTeam, Shelter } from '@/types/authority';
 import type { CommandMapProps } from './CommandMap';
 import PulsingDot from '@/components/ui/PulsingDot';
 import { fetchFromApi, API_ENDPOINTS } from '@/lib/api';
+
+// ─── Risk Zone Type ───
+interface RiskZone {
+  _id: string;
+  disasterType: 'flood' | 'fire' | 'earthquake'; // renamed from hazardType
+  riskLevel: 'LOW' | 'MODERATE' | 'HIGH' | 'CRITICAL'; 
+  location: { coordinates: [number, number] };
+  riskScore: number;
+  riskFactors?: string[]; // renamed from factors, now string array
+  isVulnerableZone: boolean;
+  state: string;
+  district: string;
+   source?: 'ai_model' | 'manual' | 'external_feed'; 
+  isStale?: boolean; 
+}
 
 // ─── Comprehensive State Coordinates Dictionary for India ───
 const STATE_CENTERS: Record<string, { center: [number, number]; zoom: number }> = {
@@ -73,7 +89,6 @@ const STATE_CENTERS: Record<string, { center: [number, number]; zoom: number }> 
 
 // ─── Major District Coordinates ───
 const DISTRICT_CENTERS: Record<string, [number, number]> = {
-  // Maharashtra
   'pune': [18.5204, 73.8567],
   'mumbai': [19.076, 72.8777],
   'mumbai city': [18.96, 72.82],
@@ -90,8 +105,6 @@ const DISTRICT_CENTERS: Record<string, [number, number]> = {
   'sangli': [16.8524, 74.5815],
   'raigad': [18.5158, 73.1822],
   'ratnagiri': [16.9902, 73.312],
-
-  // Delhi & NCR
   'new delhi': [28.6139, 77.209],
   'central delhi': [28.6453, 77.2128],
   'north delhi': [28.7041, 77.1025],
@@ -102,8 +115,6 @@ const DISTRICT_CENTERS: Record<string, [number, number]> = {
   'gautam buddh nagar': [28.5355, 77.391],
   'ghaziabad': [28.6692, 77.4538],
   'faridabad': [28.4089, 77.3178],
-
-  // Karnataka
   'bangalore urban': [12.9716, 77.5946],
   'bangalore rural': [13.2847, 77.5583],
   'mysore': [12.2958, 76.6394],
@@ -112,16 +123,12 @@ const DISTRICT_CENTERS: Record<string, [number, number]> = {
   'dharwad': [15.4589, 75.0078],
   'mangalore': [12.9141, 74.856],
   'dakshina kannada': [12.8703, 75.2479],
-
-  // Tamil Nadu
   'chennai': [13.0827, 80.2707],
   'coimbatore': [11.0168, 76.9558],
   'madurai': [9.9252, 78.1198],
   'tiruchirappalli': [10.7905, 78.7047],
   'salem': [11.6643, 78.146],
   'tirunelveli': [8.7139, 77.7567],
-
-  // Telangana & Andhra Pradesh
   'hyderabad': [17.385, 78.4867],
   'rangareddy': [17.2403, 78.4294],
   'warangal urban': [17.9689, 79.5941],
@@ -129,15 +136,11 @@ const DISTRICT_CENTERS: Record<string, [number, number]> = {
   'krishna': [16.1959, 81.1345],
   'guntur': [16.3067, 80.4365],
   'chittoor': [13.2172, 79.1003],
-
-  // West Bengal
   'kolkata': [22.5726, 88.3639],
   'howrah': [22.5958, 88.2636],
   'north 24 parganas': [22.7214, 88.4839],
   'south 24 parganas': [22.1856, 88.5471],
   'darjeeling': [27.041, 88.2663],
-
-  // Uttar Pradesh
   'lucknow': [26.8467, 80.9462],
   'kanpur nagar': [26.4499, 80.3319],
   'varanasi': [25.3176, 82.9739],
@@ -146,43 +149,29 @@ const DISTRICT_CENTERS: Record<string, [number, number]> = {
   'meerut': [28.9845, 77.7064],
   'bareilly': [28.367, 79.4304],
   'gorakhpur': [26.7606, 83.3732],
-
-  // Gujarat
   'ahmedabad': [23.0225, 72.5714],
   'surat': [21.1702, 72.8311],
   'vadodara': [22.3072, 73.1812],
   'rajkot': [22.3039, 70.8022],
-
-  // Rajasthan
   'jaipur': [26.9124, 75.7873],
   'jodhpur': [26.2389, 73.0243],
   'udaipur': [24.5854, 73.7125],
   'kota': [25.2138, 75.8648],
-
-  // Kerala
   'thiruvananthapuram': [8.5241, 76.9366],
   'ernakulam': [9.9816, 76.2999],
   'kozhikode': [11.2588, 75.7804],
   'wayanad': [11.6854, 76.132],
   'kannur': [11.8745, 75.3704],
-
-  // Bihar
   'patna': [25.5941, 85.1376],
   'gaya': [24.7914, 85.0002],
   'muzaffarpur': [26.1209, 85.3647],
-
-  // Madhya Pradesh
   'bhopal': [23.2599, 77.4126],
   'indore': [22.7196, 75.8577],
   'jabalpur': [23.1815, 79.9864],
   'gwalior': [26.2183, 78.1828],
-
-  // Odisha
   'khordha': [20.1809, 85.6212],
   'cuttack': [20.4625, 85.8828],
   'puri': [19.8135, 85.8312],
-
-  // Assam
   'kamrup metropolitan': [26.1445, 91.7362],
   'dibrugarh': [27.4728, 94.912],
 };
@@ -508,12 +497,14 @@ export default function CommandMapClient({
   const [fetchedIncidents, setFetchedIncidents] = useState<Incident[] | null>(null);
   const [fetchedTeams, setFetchedTeams] = useState<ResponseTeam[] | null>(null);
   const [fetchedShelters, setFetchedShelters] = useState<Shelter[] | null>(null);
+  const [fetchedRiskZones, setFetchedRiskZones] = useState<RiskZone[] | null>(null);
   const [loading, setLoading] = useState(false);
 
   // Layer Toggles
   const [showIncidents, setShowIncidents] = useState(true);
   const [showTeams, setShowTeams] = useState(true);
   const [showShelters, setShowShelters] = useState(true);
+  const [showRiskZones, setShowRiskZones] = useState(true);
   const [severityFilter, setSeverityFilter] = useState<'all' | 'critical' | 'high' | 'medium' | 'low'>('all');
 
   // Load telemetry data dynamically if not passed via props
@@ -530,21 +521,25 @@ export default function CommandMapClient({
         let incidentUrl = `${API_ENDPOINTS.INCIDENTS}?limit=50`;
         let teamsUrl = `${API_ENDPOINTS.TEAMS}`;
         let sheltersUrl = `${API_ENDPOINTS.SHELTERS}`;
+        let riskUrl = `${API_ENDPOINTS.RISK_ASSESSMENTS}`;
 
         if (scope === 'district' && state && district) {
           incidentUrl += `&state=${encodeURIComponent(state)}&district=${encodeURIComponent(district)}`;
           teamsUrl += `?state=${encodeURIComponent(state)}&district=${encodeURIComponent(district)}`;
           sheltersUrl += `?state=${encodeURIComponent(state)}&district=${encodeURIComponent(district)}`;
+          riskUrl += `?state=${encodeURIComponent(state)}&district=${encodeURIComponent(district)}`;
         } else if (scope === 'state' && state) {
           incidentUrl += `&state=${encodeURIComponent(state)}`;
           teamsUrl += `?state=${encodeURIComponent(state)}`;
           sheltersUrl += `?state=${encodeURIComponent(state)}`;
+          riskUrl += `?state=${encodeURIComponent(state)}`;
         }
 
-        const [incRes, teamsRes, shRes] = await Promise.all([
+        const [incRes, teamsRes, shRes, rzRes] = await Promise.all([
           !propIncidents ? fetchFromApi<Incident[]>(incidentUrl) : Promise.resolve(null),
           !propTeams ? fetchFromApi<ResponseTeam[]>(teamsUrl) : Promise.resolve(null),
           !propShelters ? fetchFromApi<Shelter[]>(sheltersUrl) : Promise.resolve(null),
+          fetchFromApi<RiskZone[]>(riskUrl),
         ]);
 
         if (isMounted) {
@@ -559,6 +554,10 @@ export default function CommandMapClient({
           if (shRes?.success && shRes.data) {
             const list = Array.isArray(shRes.data) ? shRes.data : (shRes.data as any).shelters || [];
             setFetchedShelters(list);
+          }
+          if (rzRes?.success && rzRes.data) {
+            const list = Array.isArray(rzRes.data) ? rzRes.data : [];
+            setFetchedRiskZones(list);
           }
         }
       } catch (err) {
@@ -593,6 +592,10 @@ export default function CommandMapClient({
     if (fetchedShelters && fetchedShelters.length > 0) return fetchedShelters;
     return FALLBACK_SHELTERS;
   }, [propShelters, fetchedShelters]);
+
+  const rawRiskZones = useMemo(() => {
+    return fetchedRiskZones || [];
+  }, [fetchedRiskZones]);
 
   // Filter items by current scope and state/district
   const incidents = useMemo(() => {
@@ -643,6 +646,22 @@ export default function CommandMapClient({
     return rawShelters;
   }, [rawShelters, scope, state, district]);
 
+  const riskZones = useMemo(() => {
+    if (scope === 'district' && district) {
+      const filtered = rawRiskZones.filter(
+        (z) => z.district?.toLowerCase() === district.toLowerCase()
+      );
+      return filtered.length > 0 ? filtered : rawRiskZones;
+    }
+    if (scope === 'state' && state) {
+      const filtered = rawRiskZones.filter(
+        (z) => z.state?.toLowerCase() === state.toLowerCase()
+      );
+      return filtered.length > 0 ? filtered : rawRiskZones;
+    }
+    return rawRiskZones;
+  }, [rawRiskZones, scope, state, district]);
+
   // Compute Active View Center & Zoom
   const { center, zoom } = useMemo(() => {
     if (scope === 'district' && district) {
@@ -650,7 +669,6 @@ export default function CommandMapClient({
       if (DISTRICT_CENTERS[distKey]) {
         return { center: DISTRICT_CENTERS[distKey], zoom: 12 };
       }
-      // If district has incidents with coordinates, use first incident coordinate
       const incWithCoord = incidents.find(
         (i) => i.location?.coordinates && i.location.coordinates.length === 2
       );
@@ -681,7 +699,7 @@ export default function CommandMapClient({
     return incidents.filter((i) => i.severity === severityFilter);
   }, [incidents, showIncidents, severityFilter]);
 
-   const criticalCount = useMemo(
+  const criticalCount = useMemo(
     () => incidents.filter((i) => i.severity === 'critical' || i.isSOS).length,
     [incidents]
   );
@@ -689,6 +707,10 @@ export default function CommandMapClient({
     () => teams.filter((t) => t.status === 'available').length,
     [teams]
   );
+
+  const getRiskColor = (score: number) =>
+    score >= 70 ? '#dc2626' : score >= 40 ? '#f59e0b' : '#22c55e';
+      const getRiskRadius = (score: number) => 5000 + score * 150;
 
   const [scrollZoomEnabled, setScrollZoomEnabled] = useState(false);
 
@@ -949,7 +971,6 @@ export default function CommandMapClient({
                       </div>
                     </div>
 
-                    {/* Supply Status Quick Summary */}
                     <div className="bg-slate-50 p-2 rounded-lg border border-slate-100 space-y-1">
                       <div className="flex items-center justify-between text-[9px] font-bold text-slate-500 uppercase tracking-wider">
                         <span>Relief Supplies</span>
@@ -992,8 +1013,9 @@ export default function CommandMapClient({
                         <Package className="w-3 h-3 text-blue-600" /> View Supplies
                       </Link>
 
-                      <a
-                        href={`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`}
+                      
+
+                       <a href={`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-[10px] text-slate-500 hover:text-slate-800 inline-flex items-center gap-1 hover:underline"
@@ -1004,6 +1026,120 @@ export default function CommandMapClient({
                   </div>
                 </Popup>
               </Marker>
+            );
+          })}
+
+        {/* ─── Risk Zone Overlays ─── */}
+                {/* ─── Risk Zone Overlays ─── */}
+        {showRiskZones &&
+          riskZones.map((zone) => {
+            const coords = zone.location?.coordinates;
+            if (
+              !coords ||
+              coords.length !== 2 ||
+              !Number.isFinite(coords[0]) ||
+              !Number.isFinite(coords[1])
+            ) {
+              return null;
+            }
+            const [lng, lat] = coords;
+            const color = getRiskColor(zone.riskScore);
+            const severityLabel =
+              zone.riskScore >= 70 ? 'HIGH RISK' : zone.riskScore >= 40 ? 'MODERATE RISK' : 'LOW RISK';
+
+            const popupContent = (
+              <Popup closeButton={false}>
+                <div className="min-w-[220px] p-2.5 text-xs text-slate-800 space-y-2">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-1.5">
+                    <b className="capitalize text-sm">{zone.disasterType} Risk Zone</b>
+                    <span
+                      className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded"
+                      style={{ backgroundColor: `${color}20`, color }}
+                    >
+                      {severityLabel}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between bg-slate-50 px-2 py-1.5 rounded-lg border border-slate-100">
+                    <span className="text-slate-500 font-medium">AI Risk Score:</span>
+                    <span className="font-mono font-bold text-sm" style={{ color }}>
+                      {zone.riskScore} / 100
+                    </span>
+                  </div>
+
+                  <p className="text-slate-500">
+                    📍 {zone.district}, {zone.state}
+                  </p>
+
+                  {zone.isVulnerableZone && (
+                    <div className="flex items-center gap-1 text-red-600 font-bold text-[11px] bg-red-50 px-2 py-1 rounded-lg border border-red-100">
+                      ⚠ Flagged as Vulnerable Area
+                    </div>
+                  )}
+
+                                    <p className="text-[10px] text-slate-400 leading-relaxed pt-1 border-t border-slate-100">
+                    {zone.riskScore >= 70
+                      ? 'This area shows a high likelihood of hazard impact based on AI prediction. Priority monitoring recommended.'
+                      : zone.riskScore >= 40
+                      ? 'Moderate hazard risk detected. Continue routine monitoring.'
+                      : 'Low hazard risk currently detected in this area.'}
+                  </p>
+
+                  {/* 🆕 Source + staleness footer */}
+                  <div className="flex items-center justify-between text-[9px] pt-1 border-t border-slate-100">
+                    <span className="font-semibold text-slate-400 uppercase">
+                      Source: {zone.source === 'ai_model' ? 'AI Model' : zone.source === 'manual' ? 'Manual Entry' : zone.source === 'external_feed' ? 'External Feed' : 'Unknown'}
+                    </span>
+                    {zone.isStale && (
+                      <span className="font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">
+                        ⏱ Stale Data
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </Popup>
+            );
+
+            return (
+              <React.Fragment key={`rz-${zone._id}`}>
+                <Circle
+                  center={[lat, lng]}
+                  radius={getRiskRadius(zone.riskScore)}
+                  pathOptions={{
+                    color,
+                    fillColor: color,
+                    fillOpacity: 0.35,
+                    weight: 2.5,
+                    dashArray: zone.isVulnerableZone ? '6 4' : undefined,
+                  }}
+                >
+                  {popupContent}
+                </Circle>
+
+                <Marker
+                  position={[lat, lng]}
+                  icon={L.divIcon({
+                    className: 'risk-zone-marker',
+                    html: `
+                      <div style="position: relative; display: flex; align-items: center; justify-content: center; width: 26px; height: 26px;">
+                        <div style="position: absolute; inset: -6px; border-radius: 50%; background: ${color}; opacity: 0.35; animation: ping 2s cubic-bezier(0,0,0.2,1) infinite;"></div>
+                        <div style="
+                          width: 18px;
+                          height: 18px;
+                          border-radius: 50%;
+                          background: ${color};
+                          border: 3px solid white;
+                          box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+                        "></div>
+                      </div>
+                    `,
+                    iconSize: [26, 26],
+                    iconAnchor: [13, 13],
+                  })}
+                >
+                  {popupContent}
+                </Marker>
+              </React.Fragment>
             );
           })}
       </MapContainer>
@@ -1072,6 +1208,16 @@ export default function CommandMapClient({
           >
             Shelters ({shelters.length})
           </button>
+
+          <button
+            type="button"
+            onClick={() => setShowRiskZones(!showRiskZones)}
+            className={`px-2 py-1 rounded-lg font-semibold transition-all text-[11px] ${
+              showRiskZones ? 'bg-orange-50 text-orange-700 border border-orange-200' : 'bg-slate-100 text-slate-400'
+            }`}
+          >
+            Risk Zones ({riskZones.length})
+          </button>
         </div>
       </div>
 
@@ -1097,6 +1243,10 @@ export default function CommandMapClient({
           <div className="flex items-center gap-1">
             <span className="h-2.5 w-2.5 rounded-full bg-sky-600" />
             <span>Shelter</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="h-2.5 w-2.5 rounded-full bg-orange-600" />
+            <span>Risk Zone</span>
           </div>
         </div>
       </div>

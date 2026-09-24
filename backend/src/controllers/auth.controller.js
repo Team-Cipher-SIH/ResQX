@@ -1,4 +1,5 @@
 const User = require("../models/user.model");
+const ActivityLog = require("../models/activitylog.model");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const config = require("../config/config.js");
@@ -175,6 +176,26 @@ exports.login = async (req, res) => {
     user.refreshToken = refreshToken;
     await user.save();
 
+    // Audit log login
+    try {
+      await ActivityLog.create({
+        action: "user_login",
+        targetType: "auth",
+        targetId: user._id,
+        description: `User logged in: ${user.name} (${user.email}) [Role: ${user.role}]`,
+        performedBy: user._id,
+        state: user.state || null,
+        district: user.district || null,
+        metadata: {
+          role: user.role,
+          authorityLevel: user.authorityLevel,
+          jurisdictionId: user.jurisdictionId,
+        },
+      });
+    } catch (logErr) {
+      console.warn("ActivityLog error on login:", logErr.message);
+    }
+
     res.status(200).json({
       success: true,
       message: "Login successful",
@@ -202,6 +223,22 @@ exports.logout = async (req, res) => {
     const user = await User.findById(req.user._id);
     user.refreshToken = null;
     await user.save();
+
+    // Audit log logout
+    try {
+      await ActivityLog.create({
+        action: "user_logout",
+        targetType: "auth",
+        targetId: req.user._id,
+        description: `User logged out: ${req.user.name} (${req.user.email})`,
+        performedBy: req.user._id,
+        state: req.user.state || null,
+        district: req.user.district || null,
+      });
+    } catch (logErr) {
+      console.warn("ActivityLog error on logout:", logErr.message);
+    }
+
     res.status(200).json({ message: "Logged out successfully" });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });

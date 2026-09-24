@@ -1,0 +1,14 @@
+{
+  "builds": [
+    {
+      "src": ai_models/risk_prediction/api.py",
+      "use": "@vercel/python"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": ai_models/risk_prediction/api.py"
+    }
+  ]
+}

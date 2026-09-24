@@ -1,0 +1,12 @@
+# Environment & Cache
+sih_venv/
+__pycache__/
+
+# Raw datasets
+data/India_Flood_Inventory_v3.csv
+data/District_FloodedArea.csv
+data/DFSI.csv
+data/rainfall_districtwise_daily_imd.csv
+
+# IDE
+.vscode/

@@ -3,6 +3,7 @@ const ActivityLog = require("../models/activitylog.model");
 const jwt = require("jsonwebtoken");
 const User = require("../models/user.model");
 const { validateObjectId, checkJurisdictionAccess } = require("../middleware/jurisdiction.middleware");
+const { emitToJurisdiction } = require("../config/socket");
 
 // Helper to extract user from token if present (for optional auth routes)
 const extractUserFromToken = async (req) => {
@@ -103,6 +104,8 @@ const createShelter = async (req, res) => {
     try {
       await ActivityLog.create({
         action: "shelter_created",
+        targetType: "shelter",
+        targetId: shelter._id,
         description: `Shelter "${shelter.name}" created in ${shelter.district}, ${shelter.state} (Capacity: ${shelter.capacity})`,
         performedBy: req.user._id,
         state: shelter.state,
@@ -111,6 +114,13 @@ const createShelter = async (req, res) => {
       });
     } catch (logErr) {
       console.warn("ActivityLog error for shelter creation:", logErr.message);
+    }
+
+    // Realtime Socket Event
+    try {
+      emitToJurisdiction(shelter.state, shelter.district, "shelter-updated", shelter);
+    } catch (sockErr) {
+      console.warn("Socket error on shelter creation:", sockErr.message);
     }
 
     res.status(201).json({ success: true, message: "Shelter created successfully", data: shelter });
@@ -277,6 +287,8 @@ const updateShelter = async (req, res) => {
     try {
       await ActivityLog.create({
         action: "shelter_updated",
+        targetType: "shelter",
+        targetId: shelter._id,
         description: `Shelter "${shelter.name}" updated in ${shelter.district}, ${shelter.state} (Occupancy: ${shelter.currentOccupancy}/${shelter.capacity})`,
         performedBy: req.user._id,
         state: shelter.state,
@@ -285,6 +297,13 @@ const updateShelter = async (req, res) => {
       });
     } catch (logErr) {
       console.warn("ActivityLog error for shelter update:", logErr.message);
+    }
+
+    // Realtime Socket Event
+    try {
+      emitToJurisdiction(shelter.state, shelter.district, "shelter-updated", shelter);
+    } catch (sockErr) {
+      console.warn("Socket error on shelter update:", sockErr.message);
     }
 
     res.status(200).json({ success: true, message: "Shelter updated successfully", data: shelter });
@@ -317,6 +336,8 @@ const deactivateShelter = async (req, res) => {
     try {
       await ActivityLog.create({
         action: "shelter_deactivated",
+        targetType: "shelter",
+        targetId: shelter._id,
         description: `Shelter "${shelter.name}" in ${shelter.district}, ${shelter.state} was deactivated`,
         performedBy: req.user._id,
         state: shelter.state,
@@ -325,6 +346,13 @@ const deactivateShelter = async (req, res) => {
       });
     } catch (logErr) {
       console.warn("ActivityLog error for shelter deactivation:", logErr.message);
+    }
+
+    // Realtime Socket Event
+    try {
+      emitToJurisdiction(shelter.state, shelter.district, "shelter-updated", shelter);
+    } catch (sockErr) {
+      console.warn("Socket error on shelter deactivation:", sockErr.message);
     }
 
     res.status(200).json({ success: true, message: "Shelter deactivated successfully", data: shelter });
