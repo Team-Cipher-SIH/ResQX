@@ -59,7 +59,10 @@ export function useSocket(
   options?: { teamId?: string }
 ) {
   const eventsRef = useRef(events);
-  eventsRef.current = events;
+
+  useEffect(() => {
+    eventsRef.current = events;
+  }, [events]);
 
   useEffect(() => {
     let sock: Socket;
@@ -74,23 +77,25 @@ export function useSocket(
       sock.emit('join-team', options.teamId);
     }
 
-    // Register event listeners
-    const currentEvents = eventsRef.current;
-    if (currentEvents) {
-      Object.entries(currentEvents).forEach(([event, handler]) => {
-        sock.on(event, handler);
+    // Register persistent proxy listeners that always delegate to the latest ref
+    const registeredHandlers: { event: string; proxy: (data: unknown) => void }[] = [];
+    if (events) {
+      Object.keys(events).forEach((event) => {
+        const proxy = (data: unknown) => {
+          eventsRef.current?.[event]?.(data);
+        };
+        sock.on(event, proxy);
+        registeredHandlers.push({ event, proxy });
       });
     }
 
     return () => {
       // Cleanup listeners
-      if (currentEvents) {
-        Object.entries(currentEvents).forEach(([event, handler]) => {
-          sock.off(event, handler);
-        });
-      }
+      registeredHandlers.forEach(({ event, proxy }) => {
+        sock.off(event, proxy);
+      });
     };
-  }, [options?.teamId]);
+  }, [options?.teamId, Object.keys(events || {}).sort().join(',')]);
 
   const emit = useCallback((event: string, data?: unknown) => {
     socket?.emit(event, data);

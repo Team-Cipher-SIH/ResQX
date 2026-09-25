@@ -47,6 +47,34 @@ export type IncidentType = 'flood' | 'fire' | 'earthquake' | 'landslide' | 'cycl
 export type IncidentSeverity = 'low' | 'medium' | 'high' | 'critical';
 export type IncidentStatus = 'reported' | 'verified' | 'assigned' | 'in_progress' | 'resolved' | 'closed';
 
+export interface AIIncidentAnalysis {
+  status?: 'pending' | 'completed' | 'failed' | 'unavailable';
+  isEmergency?: boolean;
+  emergencyRelevanceReason?: string | null;
+  classifiedType?: string | null;
+  predictedType?: string | null;
+  aiSeverity?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' | null;
+  predictedSeverity?: string | null;
+  aiPriority?: 'P1' | 'P2' | 'P3' | 'P4' | null;
+  recommendedTeam?: string | null;
+  aiSummary?: string | null;
+  summary?: string | null;
+  authenticity?: 'LIKELY_GENUINE' | 'SUSPICIOUS_OR_PRANK' | 'NEEDS_PHYSICAL_VERIFICATION' | null;
+  credibilityScore?: number | null;
+  confidence?: number | null;
+  reasoning?: string | null;
+  recommendedAction?: string | null;
+  suggestedUnit?: string | null;
+  analyzedAt?: string | null;
+}
+
+export interface RelatedIncidentInfo {
+  clusterId?: string;
+  relatedIncidentIds?: string[];
+  similarityScore?: number;
+  reason?: string;
+}
+
 export interface Incident {
   _id: string;
   title: string;
@@ -68,23 +96,14 @@ export interface Incident {
   verifiedAt?: string;
   assignedTo: string | { _id: string; name: string } | null;
   assignedTeam: string | ResponseTeam | null;
+  assignedDepartment?: string | null;
   priorityScore: number;
-  aiAnalysis?: {
-    isEmergency?: boolean;
-    emergencyRelevanceReason?: string;
-    classifiedType?: string;
-    aiSeverity?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-    aiPriority?: 'P1' | 'P2' | 'P3' | 'P4';
-    recommendedTeam?: string;
-    aiSummary?: string;
-    authenticity: 'LIKELY_GENUINE' | 'SUSPICIOUS_OR_PRANK' | 'NEEDS_PHYSICAL_VERIFICATION';
-    credibilityScore: number;
-    confidence: number;
-    reasoning: string;
-    recommendedAction?: string;
-    suggestedUnit?: string;
-    analyzedAt?: string;
-  } | null;
+  aiAnalysis?: AIIncidentAnalysis | null;
+  // Deduplication & Clustering attributes
+  clusterId?: string | null;
+  relatedIncidentIds?: string[] | null;
+  similarityScore?: number | null;
+  duplicateReason?: string | null;
   statusHistory?: StatusHistoryEntry[];
   createdAt: string;
   updatedAt: string;
@@ -433,5 +452,91 @@ export function getSupplyStatusLabel(status: SupplyStatus): string {
       return 'Out of Stock';
   }
 }
+
+// ─── Risk Assessment Types ───
+
+export type DisasterRiskType = 'flood' | 'fire' | 'earthquake' | 'landslide' | 'cyclone' | 'other';
+export type RiskLevel = 'LOW' | 'MODERATE' | 'HIGH' | 'CRITICAL';
+export type RiskSource = 'ai_model' | 'manual' | 'external_feed' | 'citizen_report';
+
+export interface RiskAssessment {
+  _id: string;
+  disasterType: DisasterRiskType;
+  riskScore: number;
+  riskLevel: RiskLevel;
+  confidence?: number;
+  riskFactors?: string[];
+  location: {
+    type: 'Point';
+    coordinates: [number, number]; // [lng, lat]
+  };
+  state: string;
+  district: string;
+  status: 'active' | 'resolved' | 'superseded';
+  source?: RiskSource;
+  isVulnerableZone: boolean;
+  isStale?: boolean;
+  predictedAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export function getRiskLevelColor(level: RiskLevel): string {
+  switch (level) {
+    case 'CRITICAL':
+      return 'bg-red-50 text-red-700 border-red-200';
+    case 'HIGH':
+      return 'bg-orange-50 text-orange-700 border-orange-200';
+    case 'MODERATE':
+      return 'bg-amber-50 text-amber-700 border-amber-200';
+    case 'LOW':
+      return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+  }
+}
+
+export function getRiskHexColor(score: number): string {
+  if (score >= 85) return '#dc2626'; // CRITICAL
+  if (score >= 70) return '#ea580c'; // HIGH
+  if (score >= 40) return '#f59e0b'; // MODERATE
+  return '#10b981'; // LOW
+}
+
+// ─── Preparedness Types ───
+
+export type PreparednessStatus = 'well_prepared' | 'moderate' | 'at_risk' | 'critical';
+export type SupplyReadinessStatus = 'AVAILABLE' | 'LOW' | 'CRITICAL' | 'OUT_OF_STOCK' | 'UNKNOWN';
+
+export interface PreparednessMetrics {
+  totalShelters: number;
+  activeShelters: number;
+  totalCapacity: number;
+  availableCapacity: number;
+  totalTeams: number;
+  availableTeams: number;
+  activeRiskZones: number;
+  highRiskZones: number;
+  vulnerableZones: number;
+}
+
+export interface PreparednessData {
+  state: string | null;
+  district: string | null;
+  disasterType: string;
+  shelterReadiness: number;
+  teamsAvailable: number;
+  waterStatus: SupplyReadinessStatus;
+  medicineStatus: SupplyReadinessStatus;
+  foodStatus: SupplyReadinessStatus;
+  actions: string[];
+  score: number;
+  status: PreparednessStatus;
+  lastUpdated: string;
+  metrics: PreparednessMetrics;
+}
+
+export interface DistrictPreparednessBreakdown extends PreparednessData {
+  district: string;
+}
+
 
 

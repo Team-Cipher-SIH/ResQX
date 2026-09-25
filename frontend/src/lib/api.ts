@@ -246,10 +246,11 @@ export const API_ENDPOINTS = {
   DISPATCH_STATUS: (id: string) => `/dispatches/${id}/status`,
   ACTIVE_DISPATCHES: '/dispatches/active',
 
-  // Dashboard
+  // Dashboard & Audit
   DASHBOARD_STATS: '/dashboard/stats',
   DASHBOARD_ACTIVITY: '/dashboard/activity',
   DASHBOARD_DISTRICTS: '/dashboard/districts',
+  AUDIT_LOGS: '/audit-logs',
 
   // Alerts
   ALERTS: '/alerts',

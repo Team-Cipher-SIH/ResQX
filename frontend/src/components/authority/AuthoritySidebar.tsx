@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   Shield,
+  ShieldAlert,
   LayoutDashboard,
   AlertTriangle,
   Users,
@@ -20,6 +21,7 @@ import {
   Radio,
   Building2,
   UserCheck,
+  FileText,
 } from 'lucide-react';
 import { getCurrentUser, logout } from '@/lib/auth';
 import PulsingDot from '@/components/ui/PulsingDot';
@@ -85,13 +87,15 @@ export default function AuthoritySidebar() {
     }
 
     ops.push(
+      { label: 'Risk & Preparedness', href: '/authority/risk', icon: ShieldAlert },
       { label: 'Incidents', href: '/authority/incidents', icon: AlertTriangle },
       { label: 'Response Teams', href: '/authority/teams', icon: Users },
       { label: 'Dispatches', href: '/authority/dispatches', icon: Send },
       { label: 'Alerts', href: '/authority/alerts', icon: Bell },
       { label: 'Shelters & Relief', href: '/authority/shelters', icon: Home },
       { label: 'Supply Inventory', href: '/authority/supplies', icon: Package },
-      { label: 'Officers & Personnel', href: '/authority/officers', icon: UserCheck }
+      { label: 'Officers & Personnel', href: '/authority/officers', icon: UserCheck },
+      { label: 'Audit & Activity Log', href: '/authority/audit', icon: FileText }
     );
 
     // 2. Jurisdiction Items (only for central/admin)

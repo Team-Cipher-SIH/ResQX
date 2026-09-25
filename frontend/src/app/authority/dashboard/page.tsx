@@ -13,6 +13,7 @@ import StatCard from '@/components/authority/StatCard';
 import { IncidentStatusBadge, SeverityBadge, PriorityBadge, SOSIndicator } from '@/components/authority/Badges';
 import { LoadingState, ErrorState, EmptyState, SkeletonCard, SkeletonTable } from '@/components/authority/LoadingStates';
 import { fetchFromApi, API_ENDPOINTS } from '@/lib/api';
+import { useSocket } from '@/lib/socket';
 import type { DashboardStats, Incident, ActivityLogEntry, IncidentType, Shelter, Supply } from '@/types/authority';
 import { getShelterStatus, getSupplyStatusColor, getSupplyStatusLabel } from '@/types/authority';
 import { MOCK_SHELTERS_DATA } from '@/data/shelterMockData';
@@ -115,6 +116,15 @@ export default function AuthorityDashboardPage() {
   useEffect(() => {
     loadData();
   }, []);
+
+  // Realtime updates
+  useSocket({
+    'new-incident': () => loadData(),
+    'incident-updated': () => loadData(),
+    'dispatch-created': () => loadData(),
+    'dispatch-updated': () => loadData(),
+    'new-alert': () => loadData(),
+  });
 
   // Compute central shelter overview metrics
   const shelterMetrics = React.useMemo(() => {
