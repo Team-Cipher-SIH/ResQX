@@ -1,14 +1,20 @@
+'use client';
+
 import Link from 'next/link';
 import {
   AlertCircle,
   ShieldAlert,
   CheckCircle2,
+  Loader2,
 } from 'lucide-react';
 
 import LiveDisasterMap from '@/components/LiveDisasterMap';
 import SpecularButton from '@/components/Reactbits/SpecularButton';
+import { useEmergencySOS } from '@/lib/useEmergencySOS';
 
 export default function Hero() {
+  const { isSendingSOS, sosStatus, triggerSOS, dismissStatus } = useEmergencySOS();
+
   return (
     <section className="relative overflow-hidden border-b border-slate-200 bg-slate-50 pt-12 pb-20 lg:pt-20 lg:pb-28">
 
@@ -65,17 +71,41 @@ export default function Hero() {
               and safer communities.
             </p>
 
+            {/* SOS Feedback Message */}
+            {sosStatus && (
+              <div
+                className={`animate-fade-in flex items-center gap-2.5 rounded-xl border p-3.5 text-xs font-medium text-left ${
+                  sosStatus.type === 'success'
+                    ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                    : 'border-red-200 bg-red-50 text-red-800'
+                }`}
+              >
+                {sosStatus.type === 'success' ? (
+                  <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+                ) : (
+                  <AlertCircle className="h-4 w-4 shrink-0 text-red-600" />
+                )}
+                <div className="flex-1 font-medium">{sosStatus.message}</div>
+                <button
+                  type="button"
+                  onClick={dismissStatus}
+                  className="text-xs font-bold underline opacity-70 hover:opacity-100 transition-opacity cursor-pointer"
+                >
+                  Dismiss
+                </button>
+              </div>
+            )}
+
             {/* ==================================================
                 CTA BUTTONS
             =================================================== */}
             <div className="animate-fade-in-up animation-delay-300 flex flex-col items-center justify-center gap-4 sm:flex-row lg:justify-start">
 
-              {/* Report Disaster */}
-              <Link
-                href="/citizen/login"
-                className="w-full sm:w-auto"
-              >
+              {/* Emergency SOS */}
+              <div className="w-full sm:w-auto">
                 <SpecularButton
+                  onClick={triggerSOS}
+                  disabled={isSendingSOS}
                   size="md"
                   radius={14}
                   tint="#dc2626"
@@ -101,16 +131,22 @@ export default function Hero() {
                     shadow-red-600/25
                     hover:shadow-xl
                     hover:shadow-red-600/30
+                    disabled:opacity-75
+                    cursor-pointer
                   "
                 >
                   <span className="relative z-[10] flex items-center justify-center gap-2 text-white">
-                    <AlertCircle className="h-4 w-4 shrink-0 text-white" />
+                    {isSendingSOS ? (
+                      <Loader2 className="h-4 w-4 shrink-0 text-white animate-spin" />
+                    ) : (
+                      <AlertCircle className="h-4 w-4 shrink-0 text-white" />
+                    )}
                     <span className="text-white">
-                      Report a Disaster
+                      {isSendingSOS ? 'Broadcasting SOS...' : 'Emergency SOS'}
                     </span>
                   </span>
                 </SpecularButton>
-              </Link>
+              </div>
 
               {/* Authority Login */}
               <Link
