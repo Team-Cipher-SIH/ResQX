@@ -209,4 +209,57 @@ Authentication: `Authorization: Bearer <JWT_ACCESS_TOKEN>`
 | `dispatch-updated` | Status transition (en route, on site, completed) | District, State, Team room |
 | `team-updated` | Team status change (available/busy) | District, State, Central |
 | `shelter-updated` | Shelter occupancy/capacity updated | District, State, Central |
-| `new-alert` | Advisory broadcast created | Affected District & State |
+| `new-alert` / `alert-broadcast` | Advisory broadcast created | Affected District & State |
+| `risk-updated` | Pre-disaster risk assessment generated | District, State, Central |
+
+---
+
+## 8. Pre-Disaster AI Risk Prediction (`/api/risk`)
+
+Integrates with Render FastAPI ML microservice (`POST /predict-risk`) with resilient fallback.
+
+### `POST /api/risk/predict`
+- **Access**: Authority (`protect`, `attachJurisdictionFilter`)
+- **Body**:
+  ```json
+  {
+    "disasterType": "flood",
+    "location": { "lat": 26.45, "lng": 80.35 },
+    "state": "Maharashtra",
+    "district": "Pune",
+    "features": {
+      "rainfall": 120,
+      "riverLevel": 8.2,
+      "historicalFloodFrequency": 0.71,
+      "elevation": 118
+    }
+  }
+  ```
+- **Response (201)**:
+  ```json
+  {
+    "success": true,
+    "message": "AI disaster risk prediction completed successfully",
+    "data": {
+      "_id": "6ab...",
+      "disasterType": "flood",
+      "location": { "type": "Point", "coordinates": [80.35, 26.45] },
+      "state": "Maharashtra",
+      "district": "Pune",
+      "riskScore": 66,
+      "riskLevel": "HIGH",
+      "confidence": 0.84,
+      "riskFactors": ["High historical flood incidence in this district"],
+      "source": "ai_model",
+      "aiStatus": "online",
+      "status": "active"
+    },
+    "alertTriggered": false
+  }
+  ```
+- **Automated Behavior**:
+  - If `riskScore >= 70`: Auto-drafts Early Warning alert in `Alert` collection.
+  - Broadcasts `risk-updated` and `alert-broadcast` to district/state Socket.IO rooms.
+  - Generates audit trail entry with action `risk_assessment_created`.
+  - Resilient: if Render service is cold or sleeping, falls back to explainable baseline heuristic (`aiStatus: "fallback_active"`), guaranteeing 100% API availability.
+

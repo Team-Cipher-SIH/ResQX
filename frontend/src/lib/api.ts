@@ -281,6 +281,7 @@ export const API_ENDPOINTS = {
 
   RISK_ASSESSMENTS: '/risk',
   RISK_PREDICTION: '/risk/prediction',
+  RISK_AI_PREDICT: '/risk/predict',
   RISK_BY_DISTRICT: (district: string) => `/risk/${district}`,
   RISK_BY_DISTRICT_TYPE: (district: string, disasterType: string) => `/risk/${district}/${disasterType}`,
   RISK_ASSESSMENT_DETAIL: (id: string) => `/risk/${id}`,

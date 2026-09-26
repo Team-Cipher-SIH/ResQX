@@ -1,5 +1,8 @@
-const  RiskAssessment  = require('../models/riskAssessment.model');
+const RiskAssessment = require('../models/riskAssessment.model');
+const ActivityLog = require('../models/activitylog.model');
 const { triggerEarlyWarningIfNeeded } = require('../utils/riskAlertTrigger');
+const { predictDisasterRisk } = require('../utils/aiRiskService');
+const { emitToJurisdiction } = require('../config/socket');
 
 // Derives riskLevel from riskScore when not explicitly provided
 const deriveRiskLevel = (score) => {
@@ -9,10 +12,135 @@ const deriveRiskLevel = (score) => {
   return 'LOW';
 };
 
+// @desc   Trigger AI disaster risk prediction via Render microservice and store result
+// @route  POST /api/risk/predict
+exports.predictRiskWithAI = async (req, res) => {
+  try {
+    let {
+      disasterType,
+      coordinates,
+      location,
+      state,
+      district,
+      locationId,
+      features,
+      isVulnerableZone,
+    } = req.body;
+
+    // Normalize coordinates [lng, lat] and location { lat, lng }
+    let finalCoordinates = null;
+    let finalLocation = null;
+
+    if (Array.isArray(coordinates) && coordinates.length === 2) {
+      finalCoordinates = [Number(coordinates[0]), Number(coordinates[1])];
+      finalLocation = { lat: finalCoordinates[1], lng: finalCoordinates[0] };
+    } else if (location && typeof location.lat === 'number' && typeof location.lng === 'number') {
+      finalLocation = { lat: Number(location.lat), lng: Number(location.lng) };
+      finalCoordinates = [finalLocation.lng, finalLocation.lat];
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: 'Valid coordinates [lng, lat] or location { lat, lng } are required.',
+      });
+    }
+
+    if (!disasterType) {
+      return res.status(400).json({
+        success: false,
+        message: 'disasterType is required (flood, fire, earthquake).',
+      });
+    }
+
+    // Default state/district from authenticated user or fallback
+    state = state || req.user?.state || 'Maharashtra';
+    district = district || req.user?.district || locationId || 'Pune';
+    locationId = locationId || district.toLowerCase();
+
+    // Call Render microservice via resilient adapter
+    const aiResult = await predictDisasterRisk({
+      disasterType,
+      location: finalLocation,
+      locationId,
+      features: features || {},
+    });
+
+    const finalRiskLevel = aiResult.riskLevel || deriveRiskLevel(aiResult.riskScore);
+
+    const risk = await RiskAssessment.create({
+      disasterType: (aiResult.disasterType || disasterType).toLowerCase(),
+      location: { type: 'Point', coordinates: finalCoordinates },
+      state,
+      district,
+      locationId,
+      features: features || {},
+      riskScore: aiResult.riskScore,
+      riskLevel: finalRiskLevel,
+      confidence: aiResult.confidence ?? 0.8,
+      riskFactors: aiResult.riskFactors || [],
+      source: aiResult.source || 'ai_model',
+      aiStatus: aiResult.aiStatus || 'online',
+      isVulnerableZone: !!isVulnerableZone,
+      createdBy: req.user?._id || null,
+      predictedAt: aiResult.predictedAt ? new Date(aiResult.predictedAt) : new Date(),
+    });
+
+    // Auto-trigger early warning alert if riskScore >= 70
+    const alert = await triggerEarlyWarningIfNeeded(risk);
+
+    // Realtime notification via Socket.IO
+    try {
+      emitToJurisdiction(state, district, 'risk-updated', risk);
+      if (alert) {
+        emitToJurisdiction(state, district, 'alert-broadcast', alert);
+      }
+    } catch (sockErr) {
+      console.warn('Socket emission non-fatal warning in risk prediction:', sockErr.message);
+    }
+
+    // Audit logging
+    try {
+      await ActivityLog.create({
+        action: 'risk_assessment_created',
+        description: `AI Risk Assessment generated for ${risk.district}, ${risk.state} (${risk.disasterType.toUpperCase()}: ${risk.riskScore}/100 [${risk.riskLevel}])`,
+        targetType: 'alert',
+        targetId: risk._id,
+        state,
+        district,
+        performedBy: req.user?._id || null,
+        metadata: {
+          disasterType: risk.disasterType,
+          riskScore: risk.riskScore,
+          riskLevel: risk.riskLevel,
+          source: risk.source,
+          aiStatus: risk.aiStatus,
+          alertTriggered: !!alert,
+        },
+      });
+    } catch (auditErr) {
+      console.warn('Audit log non-fatal warning in risk prediction:', auditErr.message);
+    }
+
+    return res.status(201).json({
+      success: true,
+      message: 'AI disaster risk prediction completed successfully',
+      data: risk,
+      alertTriggered: !!alert,
+      alert: alert || null,
+    });
+  } catch (err) {
+    console.error('predictRiskWithAI error:', err);
+    return res.status(500).json({ success: false, message: 'Failed to process AI risk prediction.' });
+  }
+};
+
 // @desc   Create a new risk assessment (AI or manual)
 // @route  POST /api/risk/prediction
 exports.createRiskAssessment = async (req, res) => {
   try {
+    if (req.body.riskScore === undefined || req.body.callAI === true) {
+      return exports.predictRiskWithAI(req, res);
+    }
+
     const {
       disasterType,
       coordinates,

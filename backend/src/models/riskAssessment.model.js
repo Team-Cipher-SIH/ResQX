@@ -30,10 +30,17 @@ const riskAssessmentSchema = new mongoose.Schema(
     },
     confidence: { type: Number, min: 0, max: 1, default: 0.5 },
     riskFactors: [{ type: String }], // e.g. ["heavy rainfall", "river level"]
+    locationId: { type: String, default: null, index: true },
+    features: { type: mongoose.Schema.Types.Mixed, default: {} },
     source: {
       type: String,
-      enum: ['ai_model', 'manual', 'external_feed'],
+      enum: ['ai_model', 'baseline_heuristic', 'manual', 'external_feed'],
       default: 'ai_model',
+    },
+    aiStatus: {
+      type: String,
+      enum: ['online', 'fallback_active', 'manual'],
+      default: 'online',
     },
     status: {
       type: String,

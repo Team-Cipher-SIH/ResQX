@@ -3,6 +3,7 @@ const router = express.Router();
 
 const {
   createRiskAssessment,
+  predictRiskWithAI,
   getRiskAssessments,
   getRiskByDistrict,
   getRiskByDistrictAndType,
@@ -19,6 +20,7 @@ router.use(attachJurisdictionFilter);
 
 // Static routes FIRST — order matters
 router.get('/', getRiskAssessments);
+router.post('/predict', predictRiskWithAI);
 router.post('/prediction', createRiskAssessment);
 router.get('/vulnerable-zones', getVulnerableZones);
 
