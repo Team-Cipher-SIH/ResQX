@@ -38,6 +38,7 @@ const activityLogSchema = new mongoose.Schema(
         "supply_activated",
         "user_login",
         "user_logout",
+        "risk_assessment_created",
       ],
     },
     description: { type: String, required: true },
