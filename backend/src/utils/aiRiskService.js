@@ -1,7 +1,7 @@
 const axios = require('axios');
 
 const AI_RISK_SERVICE_URL = (process.env.AI_RISK_SERVICE_URL || 'https://resqx-2oud.onrender.com').replace(/\/+$/, '');
-const REQUEST_TIMEOUT_MS = parseInt(process.env.AI_RISK_TIMEOUT_MS || '12000', 10);
+const REQUEST_TIMEOUT_MS = parseInt(process.env.AI_RISK_TIMEOUT_MS || '20000', 10);
 
 /**
  * Baseline heuristic generator if external AI service is unreachable or cold
