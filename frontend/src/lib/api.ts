@@ -5,20 +5,7 @@
  * Handles Bearer token injection, 401 refresh token retry, and response envelope normalization.
  */
 
-export function getApiBaseUrl(): string {
-  if (process.env.NEXT_PUBLIC_API_URL) {
-    return process.env.NEXT_PUBLIC_API_URL.replace(/\/+$/, '');
-  }
-  if (typeof window !== 'undefined' && window.location?.hostname) {
-    const host = window.location.hostname;
-    if (host && host !== 'localhost' && host !== '127.0.0.1') {
-      return `http://${host}:5000/api`;
-    }
-  }
-  return 'http://localhost:5000/api';
-}
-
-const API_BASE_URL = getApiBaseUrl();
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api').replace(/\/+$/, '');
 
 export interface ApiResponse<T = unknown> {
   success: boolean;
@@ -81,8 +68,7 @@ async function refreshAccessToken(): Promise<string | null> {
   }
 
   try {
-    const baseUrl = getApiBaseUrl();
-    const refreshUrl = `${baseUrl}/auth/refresh`;
+    const refreshUrl = `${API_BASE_URL}/auth/refresh`;
     const response = await fetch(refreshUrl, {
       method: 'POST',
       headers: {
@@ -116,14 +102,13 @@ export async function fetchFromApi<T = unknown>(
   options?: RequestInit,
   isRetry = false
 ): Promise<ApiResponse<T>> {
-  const baseUrl = getApiBaseUrl();
-  // Normalize endpoint: ensure we don't duplicate /api if already in baseUrl
+  // Normalize endpoint: ensure we don't duplicate /api if already in API_BASE_URL
   let cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-  if (baseUrl.endsWith('/api') && cleanEndpoint.startsWith('/api/')) {
+  if (API_BASE_URL.endsWith('/api') && cleanEndpoint.startsWith('/api/')) {
     cleanEndpoint = cleanEndpoint.replace(/^\/api/, '');
   }
 
-  const url = `${baseUrl}${cleanEndpoint}`;
+  const url = `${API_BASE_URL}${cleanEndpoint}`;
 
   const token = getStoredAccessToken();
   const isFormData = typeof FormData !== 'undefined' && options?.body instanceof FormData;
@@ -261,10 +246,11 @@ export const API_ENDPOINTS = {
   DISPATCH_STATUS: (id: string) => `/dispatches/${id}/status`,
   ACTIVE_DISPATCHES: '/dispatches/active',
 
-  // Dashboard
+  // Dashboard & Audit
   DASHBOARD_STATS: '/dashboard/stats',
   DASHBOARD_ACTIVITY: '/dashboard/activity',
   DASHBOARD_DISTRICTS: '/dashboard/districts',
+  AUDIT_LOGS: '/audit-logs',
 
   // Alerts
   ALERTS: '/alerts',

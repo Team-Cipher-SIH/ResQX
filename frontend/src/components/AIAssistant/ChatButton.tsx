@@ -152,8 +152,8 @@ function getMockResponse(query: string, lang: Lang): string {
   if (match) return match[lang];
 
   return lang === 'hi'
-    ? 'मैं शेल्टर, आपदा सुरक्षा, घटना रिपोर्टिंग और राहत सामग्री में आपकी सहायता कर सकता हूँ। कृपया अपना प्रश्न पूछें।'
-    : 'I am here to assist with disaster response, shelter locations, incident reports, emergency supplies, and safety guidelines. How can I help you?';
+    ? 'मैं अभी demo मोड में हूँ, इसलिए हर सवाल का सटीक जवाब नहीं दे सकता। शेल्टर, बाढ़, आग, भूकंप, रिपोर्टिंग या ज़रूरी सामान के बारे में पूछ कर देखें — पूरा RAG असिस्टेंट जल्द आ रहा है।'
+    : "I'm running in demo mode right now, so I can't answer everything precisely yet. Try asking about shelters, floods, fire, earthquakes, reporting, or emergency supplies — the full RAG assistant is coming soon.";
 }
 
 // ---------- Helpers ----------

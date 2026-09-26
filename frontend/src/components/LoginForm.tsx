@@ -672,7 +672,7 @@ export default function LoginForm({ role }: LoginFormProps) {
                         e.preventDefault();
 
                         alert(
-                          'For password resets or credential recovery, please contact your District Administrator or National Emergency IT Helpdesk.'
+                          'Forgot password functionality will connect to Express Mailer in Phase 2.'
                         );
                       }}
                       className="text-xs font-medium text-blue-600 transition hover:text-blue-800 hover:underline"
@@ -700,17 +700,13 @@ export default function LoginForm({ role }: LoginFormProps) {
 
                     <button
                       type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setShowPassword((prev) => !prev);
-                      }}
-                      className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-700 transition cursor-pointer z-20 hover:scale-110 active:scale-95"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 transition"
                       tabIndex={-1}
                       title={showPassword ? 'Hide password' : 'Show password'}
                     >
                       {showPassword ? (
-                        <EyeOff className="h-4 w-4 text-blue-600" />
+                        <EyeOff className="h-4 w-4" />
                       ) : (
                         <Eye className="h-4 w-4" />
                       )}

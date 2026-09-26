@@ -582,17 +582,13 @@ export default function OfficersManagementPage() {
                     />
                     <button
                       type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setShowPassword((prev) => !prev);
-                      }}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-700 transition cursor-pointer z-20 hover:scale-110 active:scale-95"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 transition"
                       tabIndex={-1}
                       title={showPassword ? 'Hide password' : 'Show password'}
                     >
                       {showPassword ? (
-                        <EyeOff className="w-3.5 h-3.5 text-blue-600" />
+                        <EyeOff className="w-3.5 h-3.5" />
                       ) : (
                         <Eye className="w-3.5 h-3.5" />
                       )}

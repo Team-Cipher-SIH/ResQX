@@ -38,16 +38,19 @@ import { fetchFromApi, API_ENDPOINTS } from '@/lib/api';
 // ─── Risk Zone Type ───
 interface RiskZone {
   _id: string;
-  disasterType: 'flood' | 'fire' | 'earthquake'; // renamed from hazardType
-  riskLevel: 'LOW' | 'MODERATE' | 'HIGH' | 'CRITICAL'; 
+  disasterType: 'flood' | 'fire' | 'earthquake' | 'landslide' | 'cyclone' | 'other';
+  riskLevel: 'LOW' | 'MODERATE' | 'HIGH' | 'CRITICAL';
   location: { coordinates: [number, number] };
   riskScore: number;
-  riskFactors?: string[]; // renamed from factors, now string array
+  confidence?: number;
+  riskFactors?: string[];
   isVulnerableZone: boolean;
   state: string;
   district: string;
-   source?: 'ai_model' | 'manual' | 'external_feed'; 
-  isStale?: boolean; 
+  source?: 'ai_model' | 'manual' | 'external_feed' | 'citizen_report';
+  isStale?: boolean;
+  predictedAt?: string;
+  createdAt?: string;
 }
 
 // ─── Comprehensive State Coordinates Dictionary for India ───
@@ -709,8 +712,8 @@ export default function CommandMapClient({
   );
 
   const getRiskColor = (score: number) =>
-    score >= 70 ? '#dc2626' : score >= 40 ? '#f59e0b' : '#22c55e';
-      const getRiskRadius = (score: number) => 5000 + score * 150;
+    score >= 85 ? '#dc2626' : score >= 70 ? '#ea580c' : score >= 40 ? '#f59e0b' : '#10b981';
+  const getRiskRadius = (score: number) => 5000 + score * 150;
 
   const [scrollZoomEnabled, setScrollZoomEnabled] = useState(false);
 
@@ -1045,56 +1048,82 @@ export default function CommandMapClient({
             const [lng, lat] = coords;
             const color = getRiskColor(zone.riskScore);
             const severityLabel =
-              zone.riskScore >= 70 ? 'HIGH RISK' : zone.riskScore >= 40 ? 'MODERATE RISK' : 'LOW RISK';
+              zone.riskScore >= 85
+                ? 'CRITICAL RISK'
+                : zone.riskScore >= 70
+                ? 'HIGH RISK'
+                : zone.riskScore >= 40
+                ? 'MODERATE RISK'
+                : 'LOW RISK';
+            const conf = zone.confidence !== undefined ? Math.round(zone.confidence * (zone.confidence <= 1 ? 100 : 1)) : null;
 
             const popupContent = (
               <Popup closeButton={false}>
-                <div className="min-w-[220px] p-2.5 text-xs text-slate-800 space-y-2">
+                <div className="min-w-[240px] max-w-[280px] p-3 text-xs text-slate-800 space-y-2.5">
                   <div className="flex items-center justify-between border-b border-slate-100 pb-1.5">
-                    <b className="capitalize text-sm">{zone.disasterType} Risk Zone</b>
+                    <b className="capitalize text-xs font-extrabold text-slate-900">{zone.disasterType} Risk Zone</b>
                     <span
-                      className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded"
+                      className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded"
                       style={{ backgroundColor: `${color}20`, color }}
                     >
                       {severityLabel}
                     </span>
                   </div>
 
-                  <div className="flex items-center justify-between bg-slate-50 px-2 py-1.5 rounded-lg border border-slate-100">
-                    <span className="text-slate-500 font-medium">AI Risk Score:</span>
-                    <span className="font-mono font-bold text-sm" style={{ color }}>
-                      {zone.riskScore} / 100
+                  <div className="flex items-center justify-between bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-100">
+                    <span className="text-slate-500 font-semibold text-[11px]">AI Risk Score:</span>
+                    <span className="font-mono font-black text-sm" style={{ color }}>
+                      {zone.riskScore} <span className="text-[10px] text-slate-400 font-normal">/ 100</span>
                     </span>
                   </div>
 
-                  <p className="text-slate-500">
-                    📍 {zone.district}, {zone.state}
-                  </p>
+                  <div className="text-[11px] text-slate-600 space-y-0.5">
+                    <p className="font-medium text-slate-900">
+                      📍 {zone.district}, {zone.state}
+                    </p>
+                    {conf !== null && (
+                      <p className="text-[10px] text-slate-500">
+                        Model Confidence: <b className="text-slate-700">{conf}%</b>
+                      </p>
+                    )}
+                  </div>
 
                   {zone.isVulnerableZone && (
-                    <div className="flex items-center gap-1 text-red-600 font-bold text-[11px] bg-red-50 px-2 py-1 rounded-lg border border-red-100">
-                      ⚠ Flagged as Vulnerable Area
+                    <div className="flex items-center gap-1 text-red-700 font-bold text-[10px] bg-red-50 px-2 py-1 rounded-md border border-red-200">
+                      ⚠ Designated Vulnerable Area
                     </div>
                   )}
 
-                                    <p className="text-[10px] text-slate-400 leading-relaxed pt-1 border-t border-slate-100">
-                    {zone.riskScore >= 70
-                      ? 'This area shows a high likelihood of hazard impact based on AI prediction. Priority monitoring recommended.'
-                      : zone.riskScore >= 40
-                      ? 'Moderate hazard risk detected. Continue routine monitoring.'
-                      : 'Low hazard risk currently detected in this area.'}
-                  </p>
+                  {zone.riskFactors && zone.riskFactors.length > 0 && (
+                    <div className="text-[10px] text-slate-500 bg-slate-50 p-2 rounded-lg border border-slate-100 space-y-1">
+                      <span className="font-bold uppercase tracking-wider text-slate-400 block text-[9px]">Key Factors:</span>
+                      <p className="text-slate-700 line-clamp-2 leading-tight">
+                        {zone.riskFactors.join(' • ')}
+                      </p>
+                    </div>
+                  )}
 
-                  {/* 🆕 Source + staleness footer */}
-                  <div className="flex items-center justify-between text-[9px] pt-1 border-t border-slate-100">
-                    <span className="font-semibold text-slate-400 uppercase">
-                      Source: {zone.source === 'ai_model' ? 'AI Model' : zone.source === 'manual' ? 'Manual Entry' : zone.source === 'external_feed' ? 'External Feed' : 'Unknown'}
+                  {/* Source + staleness footer */}
+                  <div className="flex items-center justify-between text-[9px] pt-1 border-t border-slate-100 text-slate-400">
+                    <span className="font-semibold uppercase">
+                      Source: {zone.source === 'ai_model' ? 'AI Model' : zone.source === 'manual' ? 'Manual Entry' : 'Telemetry Feed'}
                     </span>
                     {zone.isStale && (
-                      <span className="font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">
-                        ⏱ Stale Data
+                      <span className="font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                        ⏱ Stale (&gt;24h)
                       </span>
                     )}
+                  </div>
+
+                  {/* Actions */}
+                  <div className="pt-1 border-t border-slate-100 flex items-center gap-1.5">
+                    <Link
+                      href="/authority/risk"
+                      className="flex-1 inline-flex items-center justify-center gap-1 py-1.5 px-2 bg-blue-600 text-white rounded-lg text-[10px] font-bold hover:bg-blue-700 transition-colors shadow-2xs"
+                    >
+                      <Eye className="w-3 h-3" />
+                      View Risk Details
+                    </Link>
                   </div>
                 </div>
               </Popup>

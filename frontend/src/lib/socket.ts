@@ -4,18 +4,7 @@ import { useEffect, useRef, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { getStoredAccessToken } from '@/lib/api';
 
-export function getSocketUrl(): string {
-  if (process.env.NEXT_PUBLIC_API_URL) {
-    return process.env.NEXT_PUBLIC_API_URL.replace(/\/api\/?$/, '');
-  }
-  if (typeof window !== 'undefined' && window.location?.hostname) {
-    const host = window.location.hostname;
-    if (host && host !== 'localhost' && host !== '127.0.0.1') {
-      return `http://${host}:5000`;
-    }
-  }
-  return 'http://localhost:5000';
-}
+const SOCKET_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000').replace(/\/api\/?$/, '');
 
 let socket: Socket | null = null;
 
@@ -31,8 +20,7 @@ export function connectSocket(): Socket {
     throw new Error('No access token available for socket connection');
   }
 
-  const socketUrl = getSocketUrl();
-  socket = io(socketUrl, {
+  socket = io(SOCKET_URL, {
     auth: { token },
     transports: ['websocket', 'polling'],
     reconnection: true,
@@ -71,7 +59,10 @@ export function useSocket(
   options?: { teamId?: string }
 ) {
   const eventsRef = useRef(events);
-  eventsRef.current = events;
+
+  useEffect(() => {
+    eventsRef.current = events;
+  }, [events]);
 
   useEffect(() => {
     let sock: Socket;
@@ -86,23 +77,25 @@ export function useSocket(
       sock.emit('join-team', options.teamId);
     }
 
-    // Register event listeners
-    const currentEvents = eventsRef.current;
-    if (currentEvents) {
-      Object.entries(currentEvents).forEach(([event, handler]) => {
-        sock.on(event, handler);
+    // Register persistent proxy listeners that always delegate to the latest ref
+    const registeredHandlers: { event: string; proxy: (data: unknown) => void }[] = [];
+    if (events) {
+      Object.keys(events).forEach((event) => {
+        const proxy = (data: unknown) => {
+          eventsRef.current?.[event]?.(data);
+        };
+        sock.on(event, proxy);
+        registeredHandlers.push({ event, proxy });
       });
     }
 
     return () => {
       // Cleanup listeners
-      if (currentEvents) {
-        Object.entries(currentEvents).forEach(([event, handler]) => {
-          sock.off(event, handler);
-        });
-      }
+      registeredHandlers.forEach(({ event, proxy }) => {
+        sock.off(event, proxy);
+      });
     };
-  }, [options?.teamId]);
+  }, [options?.teamId, Object.keys(events || {}).sort().join(',')]);
 
   const emit = useCallback((event: string, data?: unknown) => {
     socket?.emit(event, data);
