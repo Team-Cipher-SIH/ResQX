@@ -34,7 +34,7 @@ const riskAssessmentSchema = new mongoose.Schema(
     features: { type: mongoose.Schema.Types.Mixed, default: {} },
     source: {
       type: String,
-      enum: ['ai_model', 'baseline_heuristic', 'manual', 'external_feed'],
+      enum: ['ai_model', 'ml_model', 'external_ai', 'baseline_heuristic', 'manual', 'external_feed'],
       default: 'ai_model',
     },
     aiStatus: {

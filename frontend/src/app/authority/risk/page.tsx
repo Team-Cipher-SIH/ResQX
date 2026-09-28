@@ -598,6 +598,27 @@ export default function RiskAndPreparednessPage() {
 
               {/* Status Flags */}
               <div className="flex flex-wrap items-center gap-2">
+                {selectedRiskDetail.riskScore >= 70 && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-extrabold text-xs bg-red-100 text-red-800 border border-red-300 shadow-2xs animate-pulse">
+                    <AlertTriangle className="w-4 h-4 text-red-600" />
+                    🚨 Early Warning Auto-Triggered (Alert Draft Broadcasted)
+                  </span>
+                )}
+
+                <span
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-xs ${
+                    selectedRiskDetail.source === 'ml_model' || selectedRiskDetail.source === 'ai_model'
+                      ? 'bg-purple-50 text-purple-700 border border-purple-200'
+                      : 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+                  }`}
+                >
+                  <Sparkles className="w-4 h-4 text-purple-600" />
+                  Engine:{' '}
+                  {selectedRiskDetail.source === 'ml_model' || selectedRiskDetail.source === 'ai_model'
+                    ? 'Render ML Microservice (FastAPI)'
+                    : 'Deterministic Fail-safe Heuristic'}
+                </span>
+
                 {selectedRiskDetail.isVulnerableZone ? (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-xs bg-red-50 text-red-700 border border-red-200">
                     <AlertCircle className="w-4 h-4 text-red-500" />

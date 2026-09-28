@@ -113,10 +113,13 @@ async function predictDisasterRisk({ disasterType, location, locationId, feature
     features: features && typeof features === 'object' ? features : {},
   };
 
+  const serviceUrl = (process.env.AI_RISK_SERVICE_URL || AI_RISK_SERVICE_URL || 'https://resqx-2oud.onrender.com').replace(/\/+$/, '');
+  const timeoutMs = parseInt(process.env.AI_RISK_TIMEOUT_MS || `${REQUEST_TIMEOUT_MS}`, 10);
+
   try {
-    console.log(`[AI Risk Client] Calling Render microservice at ${AI_RISK_SERVICE_URL}/predict-risk...`);
-    const response = await axios.post(`${AI_RISK_SERVICE_URL}/predict-risk`, payload, {
-      timeout: REQUEST_TIMEOUT_MS,
+    console.log(`[AI Risk Client] Calling Render microservice at ${serviceUrl}/predict-risk...`);
+    const response = await axios.post(`${serviceUrl}/predict-risk`, payload, {
+      timeout: timeoutMs,
       headers: {
         'Content-Type': 'application/json',
       },
@@ -126,7 +129,7 @@ async function predictDisasterRisk({ disasterType, location, locationId, feature
       console.log(`[AI Risk Client] Successful prediction from Render (Score: ${response.data.riskScore}, Level: ${response.data.riskLevel})`);
       return {
         ...response.data,
-        source: 'ai_model',
+        source: response.data.source || 'ml_model',
         aiStatus: 'online',
       };
     }

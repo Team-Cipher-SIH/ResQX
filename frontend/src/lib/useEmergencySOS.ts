@@ -56,24 +56,36 @@ export function useEmergencySOS(options?: UseEmergencySOSOptions) {
         }
 
         try {
+          const storedGuestId = typeof window !== 'undefined' ? localStorage.getItem('resqx_guest_session_id') : null;
+
           const response = await fetchFromApi<{
             success: boolean;
             message?: string;
             error?: string;
             isDuplicate?: boolean;
-            data?: unknown;
+            data?: any;
+            guestSessionId?: string;
           }>('/incidents/sos', {
             method: 'POST',
+            headers: storedGuestId ? { 'x-guest-session-id': storedGuestId } : {},
             body: JSON.stringify({
               coordinates: [longitude, latitude],
               type: 'other',
+              guestSessionId: storedGuestId,
             }),
           });
 
+          const rawGuestId = (response as any).guestSessionId || (response.data as any)?.guestSessionId;
+          if (rawGuestId && typeof window !== 'undefined') {
+            localStorage.setItem('resqx_guest_session_id', String(rawGuestId));
+          }
+
           if (response.success) {
-            const successMsg =
-              response.message ||
-              'Emergency SOS alert dispatched successfully! First responders notified.';
+            const reportsCount = (response.data as any)?.reportCount || 1;
+            const successMsg = response.isDuplicate
+              ? `Existing SOS in your vicinity updated (${reportsCount} reports aggregated). Responders notified!`
+              : response.message || 'Emergency SOS alert dispatched successfully! First responders notified.';
+
             setSosStatus({
               type: 'success',
               message: successMsg,

@@ -60,11 +60,21 @@ const createDispatch = async (req, res) => {
       return res.status(404).json({ success: false, message: "Response team not found" });
     }
 
-    // 5. Verify team belongs to the incident's state and district
-    if (team.state !== incident.state || team.district !== incident.district) {
+    // 5. Verify team belongs to the incident's state (allow national authority cross-state escalation)
+    const isNationalAuthority =
+      req.user.role === "admin" ||
+      req.user.authorityLevel === "central" ||
+      (req.user.role === "authority" && !req.user.state);
+
+    const statesMatch =
+      team.state &&
+      incident.state &&
+      team.state.trim().toLowerCase() === incident.state.trim().toLowerCase();
+
+    if (!isNationalAuthority && !statesMatch) {
       return res.status(400).json({
         success: false,
-        message: `Jurisdiction mismatch: Team is in ${team.district}, ${team.state} but incident is in ${incident.district}, ${incident.state}`,
+        message: `Jurisdiction mismatch: Team is in ${team.state} but incident is in ${incident.state}`,
       });
     }
 
@@ -444,13 +454,13 @@ const getDispatches = async (req, res) => {
 
     const filter = {};
 
-    if (req.user.role === "admin" || req.user.authorityLevel === "central") {
+    if (req.user.role === "admin" || req.user.authorityLevel === "central" || (req.user.role === "authority" && !req.user.state)) {
       if (state) filter.state = state;
       if (district) filter.district = district;
-    } else if (req.user.authorityLevel === "state_admin") {
+    } else if (req.user.authorityLevel === "state_admin" || (req.user.role === "authority" && req.user.state && !req.user.district)) {
       filter.state = req.user.state;
       if (district) filter.district = district;
-    } else if (req.user.authorityLevel === "district_admin") {
+    } else if (req.user.authorityLevel === "district_admin" || (req.user.role === "authority" && req.user.district)) {
       filter.state = req.user.state;
       filter.district = req.user.district;
     } else if (req.user.authorityLevel === "field_responder") {
@@ -462,7 +472,15 @@ const getDispatches = async (req, res) => {
       Object.assign(filter, req.jurisdictionFilter);
     }
 
-    if (status) filter.status = status;
+    if (status) {
+      if (typeof status === "string" && status.includes(",")) {
+        filter.status = { $in: status.split(",").map((s) => s.trim()) };
+      } else if (Array.isArray(status)) {
+        filter.status = { $in: status };
+      } else {
+        filter.status = status;
+      }
+    }
     if (teamId && validateObjectId(teamId)) filter.team = teamId;
     if (incidentId && validateObjectId(incidentId)) filter.incident = incidentId;
 
@@ -501,11 +519,11 @@ const getActiveDispatches = async (req, res) => {
       status: { $in: ["pending", "accepted", "en_route", "on_site", "in_progress"] },
     };
 
-    if (req.user.role === "admin" || req.user.authorityLevel === "central") {
+    if (req.user.role === "admin" || req.user.authorityLevel === "central" || (req.user.role === "authority" && !req.user.state)) {
       // all active
-    } else if (req.user.authorityLevel === "state_admin") {
+    } else if (req.user.authorityLevel === "state_admin" || (req.user.role === "authority" && req.user.state && !req.user.district)) {
       filter.state = req.user.state;
-    } else if (req.user.authorityLevel === "district_admin") {
+    } else if (req.user.authorityLevel === "district_admin" || (req.user.role === "authority" && req.user.district)) {
       filter.state = req.user.state;
       filter.district = req.user.district;
     } else if (req.user.authorityLevel === "field_responder") {
@@ -675,11 +693,14 @@ const recommendTeamsForIncident = async (req, res) => {
         .sort((a, b) => (a.distanceMeters ?? 999999999) - (b.distanceMeters ?? 999999999));
     };
 
+    const stateRegex = incident.state ? new RegExp(`^${incident.state.trim()}$`, "i") : null;
+    const districtRegex = incident.district ? new RegExp(`^${incident.district.trim()}$`, "i") : null;
+
     // 5. Query candidate teams in district first
     let searchScope = "district";
     const districtMatch = {
-      state: incident.state,
-      district: incident.district,
+      state: stateRegex,
+      district: districtRegex,
       status: "available",
       $or: [
         { capabilities: { $in: [disasterType, ...disasterKeywords, ...capabilityRegexes] } },
@@ -692,7 +713,7 @@ const recommendTeamsForIncident = async (req, res) => {
     // 6. Edge case: If no teams found in district, widen search to state
     if (candidateTeams.length === 0) {
       const stateMatch = {
-        state: incident.state,
+        state: stateRegex,
         status: "available",
         $or: [
           { capabilities: { $in: [disasterType, ...disasterKeywords, ...capabilityRegexes] } },

@@ -127,6 +127,7 @@ export async function fetchFromApi<T = unknown>(
 
   try {
     const response = await fetch(url, {
+      cache: 'no-store',
       ...options,
       headers,
     });

@@ -162,3 +162,11 @@ function emitToJurisdictionId(jurisdictionId, event, data) {
 }
 
 module.exports = { setupSocketIO, getIO, emitToJurisdiction, emitToJurisdictionId };
+
+function emitToJurisdictionId(jurisdictionId, event, data) {
+  if (!io || !jurisdictionId) return;
+  io.to(`jurisdiction:${jurisdictionId}`).emit(event, data);
+  io.to("central-authority").emit(event, data);
+}
+
+module.exports = { setupSocketIO, getIO, emitToJurisdiction, emitToJurisdictionId };

@@ -19,6 +19,8 @@ import {
   Clock,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   SlidersHorizontal,
   X,
   TrendingUp,
@@ -28,6 +30,10 @@ import {
   Activity,
   Layers,
   ArrowUpRight,
+  Truck,
+  FileText,
+  User,
+  ExternalLink,
 } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 
@@ -39,6 +45,11 @@ export default function IncidentManagementPage() {
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  const toggleExpand = (id: string) => {
+    setExpandedId((prev) => (prev === id ? null : id));
+  };
   
   // Filters
   const [search, setSearch] = useState('');
@@ -61,8 +72,10 @@ export default function IncidentManagementPage() {
     { label: 'SOS', isSOS: true },
   ];
 
-  const fetchIncidents = async () => {
-    setLoading(true);
+  const fetchIncidents = async (silent = false) => {
+    if (!silent && incidents.length === 0) {
+      setLoading(true);
+    }
     setError(null);
     try {
       const activeTabData = tabs.find((t) => t.label === activeTab);
@@ -90,22 +103,26 @@ export default function IncidentManagementPage() {
           setTotalPages(data.totalPages || 1);
         }
       } else {
-        setError(res.message || 'Failed to fetch incidents');
+        if (!silent) setError(res.message || 'Failed to fetch incidents');
       }
     } catch (err: any) {
-      setError(err.message || 'Error fetching incidents');
+      if (!silent) setError(err.message || 'Error fetching incidents');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchIncidents();
+    fetchIncidents(false);
   }, [activeTab, page, search, typeFilter, severityFilter]);
 
+  // Realtime Socket.IO Listeners: Event-driven SILENT update with zero flicker or spinner
   useSocket({
-    'new-incident': () => fetchIncidents(),
-    'incident-updated': () => fetchIncidents(),
+    'new-incident': () => fetchIncidents(true),
+    'incident-created': () => fetchIncidents(true),
+    'sos-alert': () => fetchIncidents(true),
+    'incident-updated': () => fetchIncidents(true),
+    'incident-status-changed': () => fetchIncidents(true),
   });
 
   const handleVerify = async (id: string) => {
@@ -298,24 +315,27 @@ export default function IncidentManagementPage() {
 
           {/* Tabs */}
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-            <div className="flex overflow-x-auto border-b border-slate-200 hide-scrollbar">
+            <div
+              className="flex overflow-x-auto border-b border-slate-200 [&::-webkit-scrollbar]:hidden"
+              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            >
               {tabs.map((tab) => (
                 <button
                   key={tab.label}
                   onClick={() => { setActiveTab(tab.label); setPage(1); }}
-                  className={`px-4 py-3 text-xs font-bold uppercase tracking-wider whitespace-nowrap border-b-2 transition-colors ${
+                  className={`px-4 py-3 text-xs font-bold uppercase tracking-wider whitespace-nowrap border-b-2 transition-all ${
                     activeTab === tab.label
-                      ? 'border-blue-600 text-blue-600 bg-blue-50/20'
-                      : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                      ? 'border-blue-600 text-blue-600 bg-blue-50/30'
+                      : 'border-transparent text-slate-500 hover:text-slate-900 hover:bg-slate-50'
                   }`}
                 >
-                  {tab.label} {tab.isSOS && <AlertTriangle className="inline w-3.5 h-3.5 ml-1 text-red-500" />}
+                  {tab.label} {tab.isSOS && <AlertTriangle className="inline w-3.5 h-3.5 ml-1 text-red-500 animate-pulse" />}
                 </button>
               ))}
             </div>
 
             {/* Filters */}
-            <div className="p-4 bg-slate-50/50 flex flex-col md:flex-row gap-3 border-b border-slate-100">
+            <div className="p-3.5 sm:p-4 bg-slate-50/60 flex flex-col md:flex-row gap-2.5 sm:gap-3 border-b border-slate-100">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
@@ -323,14 +343,14 @@ export default function IncidentManagementPage() {
                   placeholder="Search by title, location, district, or ID..."
                   value={search}
                   onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                  className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs"
                 />
               </div>
               <div className="flex flex-wrap gap-2">
                 <select
                   value={typeFilter}
                   onChange={(e) => { setTypeFilter(e.target.value as IncidentType); setPage(1); }}
-                  className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs"
                 >
                   <option value="">All Hazard Types</option>
                   <option value="flood">Flood</option>
@@ -343,7 +363,7 @@ export default function IncidentManagementPage() {
                 <select
                   value={severityFilter}
                   onChange={(e) => { setSeverityFilter(e.target.value as IncidentSeverity); setPage(1); }}
-                  className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs"
                 >
                   <option value="">All Severities</option>
                   <option value="critical">Critical</option>
@@ -377,85 +397,361 @@ export default function IncidentManagementPage() {
                 />
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs whitespace-nowrap">
-                  <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-bold text-[10px]">
-                    <tr>
-                      <th className="px-6 py-3.5">Incident</th>
-                      <th className="px-6 py-3.5">Status</th>
-                      <th className="px-6 py-3.5">Priority</th>
-                      <th className="px-6 py-3.5">Location</th>
-                      <th className="px-6 py-3.5">Reported</th>
-                      <th className="px-6 py-3.5 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {incidents.map((incident) => (
-                      <tr key={incident._id} className="hover:bg-slate-50/80 transition-colors">
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="font-bold text-slate-900 line-clamp-1 max-w-xs">{incident.title}</span>
+              <>
+                {/* 1. Mobile & Split-Screen Responsive Card View */}
+                <div className="block lg:hidden divide-y divide-slate-100">
+                  {incidents.map((incident) => (
+                    <div key={incident._id} className="p-4 hover:bg-slate-50/80 transition-colors space-y-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="space-y-1 flex-1">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span className="font-bold text-slate-900 text-xs sm:text-sm">{incident.title}</span>
                             {incident.isSOS && <SOSIndicator />}
+                            {((incident.reportCount ?? 1) > 1) && (
+                              <span className="text-[10px] font-extrabold px-2 py-0.5 bg-amber-100 text-amber-800 border border-amber-300 rounded-full animate-pulse shadow-2xs">
+                                🚨 {incident.reportCount} Reports Aggregated
+                              </span>
+                            )}
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-wrap items-center gap-2 text-[10px]">
                             <SeverityBadge severity={incident.severity} />
-                            <span className="text-[10px] font-semibold px-2 py-0.5 bg-slate-100 text-slate-600 rounded capitalize">
+                            <span className="font-semibold px-2 py-0.5 bg-slate-100 text-slate-600 rounded capitalize">
                               {incident.type}
                             </span>
+                            <span className="text-slate-400">
+                              {incident.createdAt ? formatDistanceToNow(new Date(incident.createdAt), { addSuffix: true }) : 'Recently'}
+                            </span>
                           </div>
-                        </td>
+                        </div>
 
-                        <td className="px-6 py-4">
-                          <IncidentStatusBadge status={incident.status} />
-                        </td>
+                        <IncidentStatusBadge status={incident.status} />
+                      </div>
 
-                        <td className="px-6 py-4">
-                          <PriorityBadge score={incident.priorityScore || 0} />
-                        </td>
-
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-1.5 text-slate-700 font-medium">
-                            <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                            <span>{incident.district}, {incident.state}</span>
-                          </div>
-                          {incident.address && (
-                            <p className="text-[10px] text-slate-400 line-clamp-1 mt-0.5">{incident.address}</p>
-                          )}
-                        </td>
-
-                        <td className="px-6 py-4">
-                          <div className="text-slate-700 font-medium">
-                            {incident.createdAt ? formatDistanceToNow(new Date(incident.createdAt), { addSuffix: true }) : 'Recently'}
-                          </div>
-                          <div className="text-[10px] text-slate-400">
-                            {incident.createdAt ? format(new Date(incident.createdAt), 'PP p') : ''}
-                          </div>
-                        </td>
-
-                        <td className="px-6 py-4 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            {incident.status === 'reported' && (
-                              <button
-                                onClick={() => handleVerify(incident._id)}
-                                className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg font-bold text-[11px] hover:bg-emerald-700 transition-colors shadow-xs"
-                              >
-                                Verify
-                              </button>
-                            )}
-                            <Link
-                              href={`/authority/incidents/${incident._id}`}
-                              className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-bold text-[11px] transition-colors"
+                      {/* Location & GPS */}
+                      <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-150 text-xs space-y-1">
+                        <div className="flex items-center gap-1.5 text-slate-800 font-semibold">
+                          <MapPin className={`w-3.5 h-3.5 shrink-0 ${incident.isSOS ? 'text-red-600 animate-pulse' : 'text-slate-400'}`} />
+                          <span className="truncate">{incident.district || 'Auto Grid'}, {incident.state || 'India'}</span>
+                        </div>
+                        {incident.address && (
+                          <p className="text-[11px] text-slate-500 line-clamp-1">{incident.address}</p>
+                        )}
+                        {incident.location?.coordinates && Array.isArray(incident.location.coordinates) && incident.location.coordinates.length === 2 && (
+                          <div className="flex items-center justify-between pt-1 font-mono text-[10px]">
+                            <span className="bg-white text-slate-700 px-1.5 py-0.5 rounded border border-slate-200">
+                              {incident.location.coordinates[1].toFixed(4)}°N, {incident.location.coordinates[0].toFixed(4)}°E
+                            </span>
+                            <a
+                              href={`https://www.google.com/maps?q=${incident.location.coordinates[1]},${incident.location.coordinates[0]}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800 font-sans font-bold flex items-center gap-0.5"
                             >
-                              <span>Details</span>
-                              <ArrowUpRight className="w-3 h-3" />
-                            </Link>
+                              Open Maps <ArrowUpRight className="w-2.5 h-2.5" />
+                            </a>
                           </div>
-                        </td>
+                        )}
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex items-center justify-between pt-1">
+                        <PriorityBadge score={incident.priorityScore || 0} />
+                        <div className="flex items-center gap-2">
+                          {incident.status === 'reported' && (
+                            <button
+                              onClick={() => handleVerify(incident._id)}
+                              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs transition-colors shadow-2xs"
+                            >
+                              Verify
+                            </button>
+                          )}
+                          <Link
+                            href={`/authority/incidents/${incident._id}`}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-bold text-xs transition-colors"
+                          >
+                            <span>Details</span>
+                            <ArrowUpRight className="w-3 h-3" />
+                          </Link>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* 2. Desktop High-Density Table View */}
+                <div className="hidden lg:block overflow-x-auto relative">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead className="bg-slate-50/90 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-bold text-[10px]">
+                      <tr>
+                        <th className="w-9 px-3 py-3.5 text-center"></th>
+                        <th className="px-5 py-3.5 min-w-[240px] max-w-[340px]">Incident</th>
+                        <th className="px-4 py-3.5 w-[110px]">Status</th>
+                        <th className="px-4 py-3.5 w-[110px]">Priority</th>
+                        <th className="px-5 py-3.5 min-w-[220px]">Location</th>
+                        <th className="px-4 py-3.5 w-[120px]">Reported</th>
+                        <th className="px-4 py-3.5 w-[140px] text-right sticky right-0 z-20 bg-slate-50/95 backdrop-blur-xs shadow-[-8px_0_12px_-4px_rgba(0,0,0,0.08)] border-l border-slate-200">
+                          Actions
+                        </th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {incidents.map((incident) => {
+                        const isExpanded = expandedId === incident._id;
+                        return (
+                          <React.Fragment key={incident._id}>
+                            <tr
+                              onClick={() => toggleExpand(incident._id)}
+                              className={`group cursor-pointer transition-colors duration-150 ${
+                                isExpanded ? 'bg-blue-50/40' : 'hover:bg-slate-50/80'
+                              }`}
+                            >
+                              {/* Toggle Chevron */}
+                              <td className="w-9 px-3 py-3.5 text-center text-slate-400 group-hover:text-blue-600 transition-colors">
+                                {isExpanded ? (
+                                  <ChevronUp className="w-4 h-4 mx-auto text-blue-600" />
+                                ) : (
+                                  <ChevronDown className="w-4 h-4 mx-auto" />
+                                )}
+                              </td>
+
+                              {/* Incident Info */}
+                              <td className="px-5 py-3.5 min-w-[240px] max-w-[340px]">
+                                <div className="space-y-1">
+                                  <div className="flex flex-wrap items-center gap-1.5">
+                                    <span
+                                      className="font-bold text-slate-900 line-clamp-2 leading-snug group-hover:text-blue-600 transition-colors"
+                                      title={incident.title}
+                                    >
+                                      {incident.title}
+                                    </span>
+                                    {incident.isSOS && <SOSIndicator />}
+                                    {((incident.reportCount ?? 1) > 1) && (
+                                      <span className="text-[10px] font-bold px-2 py-0.5 bg-amber-100 text-amber-800 border border-amber-300 rounded-full animate-pulse shadow-2xs shrink-0">
+                                        🚨 {incident.reportCount} Reports
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-2 pt-0.5">
+                                    <SeverityBadge severity={incident.severity} />
+                                    <span className="text-[10px] font-semibold px-2 py-0.5 bg-slate-100 text-slate-600 rounded capitalize">
+                                      {incident.type}
+                                    </span>
+                                    <span className="text-[10px] text-blue-600 font-semibold group-hover:underline">
+                                      {isExpanded ? 'Hide Details ▲' : 'View Details ▼'}
+                                    </span>
+                                  </div>
+                                </div>
+                              </td>
+
+                              {/* Status */}
+                              <td className="px-4 py-3.5 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                                <IncidentStatusBadge status={incident.status} />
+                              </td>
+
+                              {/* Priority */}
+                              <td className="px-4 py-3.5 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                                <PriorityBadge score={incident.priorityScore || 0} />
+                              </td>
+
+                              {/* Location */}
+                              <td className="px-5 py-3.5 min-w-[220px]">
+                                <div className="flex items-center gap-1.5 text-slate-800 font-semibold">
+                                  <MapPin className={`w-3.5 h-3.5 shrink-0 ${incident.isSOS ? 'text-red-600 animate-pulse' : 'text-slate-400'}`} />
+                                  <span className="truncate">{incident.district || 'Auto Grid'}, {incident.state || 'India'}</span>
+                                </div>
+                                {incident.location?.coordinates && Array.isArray(incident.location.coordinates) && incident.location.coordinates.length === 2 && (
+                                  <div className="flex items-center gap-1.5 mt-1 font-mono text-[10px]" onClick={(e) => e.stopPropagation()}>
+                                    <span className="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded border border-slate-200">
+                                      {incident.location.coordinates[1].toFixed(4)}°N, {incident.location.coordinates[0].toFixed(4)}°E
+                                    </span>
+                                    <a
+                                      href={`https://www.google.com/maps?q=${incident.location.coordinates[1]},${incident.location.coordinates[0]}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-blue-600 hover:text-blue-800 hover:underline font-sans font-bold flex items-center gap-0.5"
+                                      title="Open GPS fix in Google Maps"
+                                    >
+                                      Maps <ArrowUpRight className="w-2.5 h-2.5" />
+                                    </a>
+                                  </div>
+                                )}
+                                {incident.address && (
+                                  <p className="text-[10px] text-slate-500 line-clamp-1 mt-0.5" title={incident.address}>{incident.address}</p>
+                                )}
+                              </td>
+
+                              {/* Reported */}
+                              <td className="px-4 py-3.5 whitespace-nowrap">
+                                <div className="text-slate-700 font-medium">
+                                  {incident.createdAt ? formatDistanceToNow(new Date(incident.createdAt), { addSuffix: true }) : 'Recently'}
+                                </div>
+                                <div className="text-[10px] text-slate-400">
+                                  {incident.createdAt ? format(new Date(incident.createdAt), 'PP p') : ''}
+                                </div>
+                              </td>
+
+                              {/* Actions - STICKY RIGHT COLUMN */}
+                              <td
+                                className="px-4 py-3.5 text-right sticky right-0 z-10 bg-white group-hover:bg-slate-50/95 shadow-[-8px_0_12px_-4px_rgba(0,0,0,0.08)] border-l border-slate-100 whitespace-nowrap"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <div className="flex items-center justify-end gap-1.5">
+                                  {incident.status === 'reported' && (
+                                    <button
+                                      onClick={() => handleVerify(incident._id)}
+                                      className="px-2.5 py-1.5 bg-emerald-600 text-white rounded-lg font-bold text-[11px] hover:bg-emerald-700 transition-colors shadow-2xs"
+                                      title="Verify Incident"
+                                    >
+                                      Verify
+                                    </button>
+                                  )}
+                                  <Link
+                                    href={`/authority/incidents/${incident._id}`}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-bold text-[11px] transition-colors"
+                                    title="Open full incident record"
+                                  >
+                                    <span>Details</span>
+                                    <ArrowUpRight className="w-3 h-3" />
+                                  </Link>
+                                </div>
+                              </td>
+                            </tr>
+
+                            {/* Inline Expandable Detail Drawer */}
+                            {isExpanded && (
+                              <tr className="bg-slate-50/90 border-y border-slate-200/90">
+                                <td colSpan={7} className="p-4 sm:p-5">
+                                  <div className="bg-white rounded-xl border border-slate-200 p-4 sm:p-5 shadow-xs space-y-4 animate-in fade-in slide-in-from-top-1 duration-150">
+                                    <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100">
+                                      <div className="space-y-0.5">
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">
+                                            INCIDENT ID: {incident._id}
+                                          </span>
+                                          {incident.isSOS && <SOSIndicator />}
+                                          {((incident.reportCount ?? 1) > 1) && (
+                                            <span className="text-[10px] font-bold px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full">
+                                              🚨 {incident.reportCount} Aggregated Reports
+                                            </span>
+                                          )}
+                                        </div>
+                                        <h3 className="text-base font-extrabold text-slate-900 leading-snug">{incident.title}</h3>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <SeverityBadge severity={incident.severity} />
+                                        <IncidentStatusBadge status={incident.status} />
+                                        <PriorityBadge score={incident.priorityScore || 0} />
+                                      </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                                      {/* 1. Description */}
+                                      <div className="space-y-1.5 bg-slate-50/80 p-3.5 rounded-xl border border-slate-200/80">
+                                        <div className="flex items-center gap-1.5 font-bold text-slate-700">
+                                          <FileText className="w-3.5 h-3.5 text-blue-600" />
+                                          <span>Report Narrative & Details</span>
+                                        </div>
+                                        <p className="text-slate-600 text-xs leading-relaxed whitespace-pre-wrap">
+                                          {incident.description || 'No additional narrative provided with this incident alert.'}
+                                        </p>
+                                      </div>
+
+                                      {/* 2. Geospatial Location */}
+                                      <div className="space-y-1.5 bg-slate-50/80 p-3.5 rounded-xl border border-slate-200/80">
+                                        <div className="flex items-center gap-1.5 font-bold text-slate-700">
+                                          <MapPin className="w-3.5 h-3.5 text-red-600" />
+                                          <span>Precise Location & Maps Fix</span>
+                                        </div>
+                                        <p className="text-slate-900 font-semibold">{incident.district || 'Auto Grid'}, {incident.state || 'India'}</p>
+                                        <p className="text-slate-500 text-[11px] leading-snug">{incident.address || 'Address lookup pending'}</p>
+                                        {incident.location?.coordinates && (
+                                          <div className="flex items-center justify-between pt-1 font-mono text-[11px]">
+                                            <span className="bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-700 font-semibold">
+                                              {incident.location.coordinates[1].toFixed(5)}°N, {incident.location.coordinates[0].toFixed(5)}°E
+                                            </span>
+                                            <a
+                                              href={`https://www.google.com/maps?q=${incident.location.coordinates[1]},${incident.location.coordinates[0]}`}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="text-blue-600 hover:text-blue-800 font-sans font-bold flex items-center gap-1"
+                                            >
+                                              Google Maps <ExternalLink className="w-3 h-3" />
+                                            </a>
+                                          </div>
+                                        )}
+                                      </div>
+
+                                      {/* 3. Reporting Source & Audit */}
+                                      <div className="space-y-1.5 bg-slate-50/80 p-3.5 rounded-xl border border-slate-200/80">
+                                        <div className="flex items-center gap-1.5 font-bold text-slate-700">
+                                          <User className="w-3.5 h-3.5 text-emerald-600" />
+                                          <span>Reporter & Source</span>
+                                        </div>
+                                        <p className="text-slate-800 font-medium">
+                                          {typeof incident.reportedBy === 'object' && incident.reportedBy?.name 
+                                            ? incident.reportedBy.name 
+                                            : (incident.isSOS ? 'Citizen 1-Tap SOS Emergency Beacon' : 'Direct Field Reporting')}
+                                        </p>
+                                        {typeof incident.reportedBy === 'object' && incident.reportedBy?.phone && (
+                                          <p className="text-slate-600 text-[11px] flex items-center gap-1">
+                                            <span>📞 {incident.reportedBy.phone}</span>
+                                          </p>
+                                        )}
+                                        <p className="text-slate-400 text-[11px]">
+                                          Logged: {incident.createdAt ? format(new Date(incident.createdAt), 'PPP p') : 'Recently'}
+                                        </p>
+                                      </div>
+                                    </div>
+
+                                    {/* Bottom Quick Action Bar inside Drawer */}
+                                    <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100">
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-xs font-bold text-slate-500">Instant Command Actions:</span>
+                                        {incident.status === 'reported' && (
+                                          <button
+                                            onClick={() => handleVerify(incident._id)}
+                                            className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs transition-colors shadow-2xs flex items-center gap-1.5"
+                                          >
+                                            <CheckCircle2 className="w-3.5 h-3.5" />
+                                            Verify Incident
+                                          </button>
+                                        )}
+                                        <Link
+                                          href={`/authority/dispatches?incidentId=${incident._id}`}
+                                          className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-xs transition-colors shadow-2xs flex items-center gap-1.5"
+                                        >
+                                          <Truck className="w-3.5 h-3.5" />
+                                          Dispatch Rescue Squad
+                                        </Link>
+                                      </div>
+
+                                      <div className="flex items-center gap-2">
+                                        <button
+                                          onClick={() => toggleExpand(incident._id)}
+                                          className="px-3 py-1.5 text-slate-500 hover:text-slate-800 font-bold text-xs transition-colors"
+                                        >
+                                          Collapse ▲
+                                        </button>
+                                        <Link
+                                          href={`/authority/incidents/${incident._id}`}
+                                          className="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-bold text-xs transition-colors flex items-center gap-1.5 shadow-2xs"
+                                        >
+                                          <span>Full Incident Dossier</span>
+                                          <ArrowUpRight className="w-3.5 h-3.5" />
+                                        </Link>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </React.Fragment>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
 
             {/* Pagination */}

@@ -99,6 +99,8 @@ export interface Incident {
   assignedDepartment?: string | null;
   priorityScore: number;
   aiAnalysis?: AIIncidentAnalysis | null;
+  reportCount?: number;
+  guestSessionId?: string | null;
   // Deduplication & Clustering attributes
   clusterId?: string | null;
   relatedIncidentIds?: string[] | null;
@@ -457,7 +459,7 @@ export function getSupplyStatusLabel(status: SupplyStatus): string {
 
 export type DisasterRiskType = 'flood' | 'fire' | 'earthquake' | 'landslide' | 'cyclone' | 'other';
 export type RiskLevel = 'LOW' | 'MODERATE' | 'HIGH' | 'CRITICAL';
-export type RiskSource = 'ai_model' | 'manual' | 'external_feed' | 'citizen_report';
+export type RiskSource = 'ai_model' | 'ml_model' | 'baseline_heuristic' | 'manual' | 'external_feed' | 'citizen_report';
 
 export interface RiskAssessment {
   _id: string;

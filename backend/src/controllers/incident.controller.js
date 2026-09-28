@@ -759,6 +759,124 @@ const getIncidentStats = async (req, res) => {
   }
 };
 
+// Major Indian district centroids for instant offline GPS district resolution
+const REGIONAL_DISTRICT_CENTERS = [
+  // Uttar Pradesh
+  { district: "Prayagraj", state: "Uttar Pradesh", coords: [81.8463, 25.4358] },
+  { district: "Varanasi", state: "Uttar Pradesh", coords: [82.9739, 25.3176] },
+  { district: "Lucknow", state: "Uttar Pradesh", coords: [80.9462, 26.8467] },
+  { district: "Kanpur", state: "Uttar Pradesh", coords: [80.3319, 26.4499] },
+  { district: "Ayodhya", state: "Uttar Pradesh", coords: [82.1998, 26.7922] },
+  { district: "Gorakhpur", state: "Uttar Pradesh", coords: [83.3732, 26.7606] },
+  { district: "Agra", state: "Uttar Pradesh", coords: [78.0081, 27.1767] },
+  { district: "Noida", state: "Uttar Pradesh", coords: [77.3910, 28.5355] },
+  { district: "Ghaziabad", state: "Uttar Pradesh", coords: [77.4538, 28.6692] },
+  { district: "Meerut", state: "Uttar Pradesh", coords: [77.7064, 28.9845] },
+  { district: "Bareilly", state: "Uttar Pradesh", coords: [79.4304, 28.3670] },
+  { district: "Aligarh", state: "Uttar Pradesh", coords: [78.0880, 27.8974] },
+  { district: "Jhansi", state: "Uttar Pradesh", coords: [78.5788, 25.4484] },
+
+  // Maharashtra
+  { district: "Pune", state: "Maharashtra", coords: [73.8567, 18.5204] },
+  { district: "Mumbai", state: "Maharashtra", coords: [72.8777, 19.0760] },
+  { district: "Thane", state: "Maharashtra", coords: [72.9781, 19.2183] },
+  { district: "Nashik", state: "Maharashtra", coords: [73.7898, 19.9975] },
+  { district: "Nagpur", state: "Maharashtra", coords: [79.0882, 21.1458] },
+  { district: "Kolhapur", state: "Maharashtra", coords: [74.2433, 16.7050] },
+  { district: "Solapur", state: "Maharashtra", coords: [75.9064, 17.6599] },
+  { district: "Satara", state: "Maharashtra", coords: [74.0183, 17.6805] },
+  { district: "Sangli", state: "Maharashtra", coords: [74.5815, 16.8524] },
+  { district: "Aurangabad", state: "Maharashtra", coords: [75.3433, 19.8762] },
+
+  // Other Major State Capitals & Hubs
+  { district: "New Delhi", state: "Delhi", coords: [77.2090, 28.6139] },
+  { district: "Bengaluru", state: "Karnataka", coords: [77.5946, 12.9716] },
+  { district: "Hyderabad", state: "Telangana", coords: [78.4867, 17.3850] },
+  { district: "Chennai", state: "Tamil Nadu", coords: [80.2707, 13.0827] },
+  { district: "Kolkata", state: "West Bengal", coords: [88.3639, 22.5726] },
+  { district: "Patna", state: "Bihar", coords: [85.1376, 25.5941] },
+  { district: "Bhopal", state: "Madhya Pradesh", coords: [77.4126, 23.2599] },
+  { district: "Indore", state: "Madhya Pradesh", coords: [75.8577, 22.7196] },
+  { district: "Jaipur", state: "Rajasthan", coords: [75.7873, 26.9124] },
+  { district: "Ahmedabad", state: "Gujarat", coords: [72.5714, 23.0225] },
+  { district: "Ranchi", state: "Jharkhand", coords: [85.3096, 23.3441] },
+  { district: "Dehradun", state: "Uttarakhand", coords: [78.0322, 30.3165] },
+  { district: "Chandigarh", state: "Punjab", coords: [76.7794, 30.7333] },
+];
+
+function calculateHaversineDistanceKm(c1, c2) {
+  if (!c1 || !c2 || c1.length < 2 || c2.length < 2) return Infinity;
+  const [lon1, lat1] = c1;
+  const [lon2, lat2] = c2;
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+async function resolveDistrictAndState(coords) {
+  if (!coords || coords.length < 2) return null;
+  const [lon, lat] = coords;
+
+  // 1. Live reverse geocoding via Nominatim with fast timeout (1800ms)
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 1800);
+    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`;
+    const res = await fetch(url, {
+      headers: { "User-Agent": "ResQX-Disaster-App/1.0" },
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.address) {
+        const addr = data.address;
+        const state = addr.state || null;
+        // Priority: state_district -> county -> city -> town -> district
+        const districtRaw =
+          addr.state_district ||
+          addr.county ||
+          addr.city ||
+          addr.town ||
+          addr.district ||
+          null;
+
+        if (state && districtRaw) {
+          const cleanDistrict = districtRaw.replace(/ District/i, "").trim();
+          return {
+            district: cleanDistrict,
+            state: state.trim(),
+            address: data.display_name || null,
+            suburb: addr.suburb || addr.neighbourhood || null,
+            source: "nominatim_reverse_geocoding",
+          };
+        }
+      }
+    }
+  } catch (geoErr) {
+    // Non-fatal, continue to offline centroids
+  }
+
+  // 2. Offline fallback using nearest regional district centroid
+  let closest = null;
+  let minDist = Infinity;
+  for (const center of REGIONAL_DISTRICT_CENTERS) {
+    const dist = calculateHaversineDistanceKm(coords, center.coords);
+    if (dist < minDist) {
+      minDist = dist;
+      closest = { ...center, distKm: Math.round(dist * 10) / 10, source: "offline_centroid" };
+    }
+  }
+  return closest;
+}
+
 // POST /api/incidents/sos
 const createSOS = async (req, res) => {
   try {
@@ -784,77 +902,105 @@ const createSOS = async (req, res) => {
 
     // 1. Duplicate & Spam Detection: Check active SOS within 10 minutes and ~200 meters
     const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
-    const orConditions = [
-      {
-        location: {
-          $near: {
-            $geometry: {
-              type: "Point",
-              coordinates: coords,
-            },
-            $maxDistance: 200, // 200 meters radius
-          },
-        },
-      },
-    ];
-
-    if (req.user) {
-      orConditions.push({ reportedBy: req.user._id });
-    }
-    if (req.guestSessionId) {
-      orConditions.push({ guestSessionId: req.guestSessionId });
-    }
+    // 200 meters in radians (Earth radius ≈ 6,378,100 meters)
+    const radiusInRadians = 200 / 6378100;
 
     let existingSOS = null;
+
+    // Check A: Geospatial proximity within 200m using $geoWithin $centerSphere (never throws in $or)
     try {
       existingSOS = await Incident.findOne({
         isSOS: true,
         status: { $in: ["reported", "verified", "assigned", "in_progress"] },
         createdAt: { $gte: tenMinutesAgo },
-        $or: orConditions,
+        location: {
+          $geoWithin: {
+            $centerSphere: [coords, radiusInRadians],
+          },
+        },
       });
     } catch (geoErr) {
-      existingSOS = await Incident.findOne({
-        isSOS: true,
-        status: { $in: ["reported", "verified", "assigned", "in_progress"] },
-        createdAt: { $gte: tenMinutesAgo },
-        $or: [
-          ...(req.user ? [{ reportedBy: req.user._id }] : []),
-          ...(req.guestSessionId ? [{ guestSessionId: req.guestSessionId }] : []),
-        ],
-      });
+      console.warn("Geospatial proximity query warning:", geoErr.message);
+    }
+
+    // Check B: Fallback to same user or guest session ID within 10 min if GPS jittered
+    if (!existingSOS && (req.user || req.guestSessionId)) {
+      try {
+        existingSOS = await Incident.findOne({
+          isSOS: true,
+          status: { $in: ["reported", "verified", "assigned", "in_progress"] },
+          createdAt: { $gte: tenMinutesAgo },
+          $or: [
+            ...(req.user ? [{ reportedBy: req.user._id }] : []),
+            ...(req.guestSessionId ? [{ guestSessionId: req.guestSessionId }] : []),
+          ],
+        });
+      } catch (idErr) {
+        console.warn("ID-based SOS lookup warning:", idErr.message);
+      }
     }
 
     if (existingSOS) {
       existingSOS.reportCount = (existingSOS.reportCount || 1) + 1;
+      existingSOS.statusHistory.push({
+        status: existingSOS.status,
+        timestamp: new Date(),
+        updatedBy: req.user ? req.user._id : null,
+        note: `Additional SOS report received from vicinity (Total Reports: ${existingSOS.reportCount})`,
+      });
       await existingSOS.save();
+
+      // Emit realtime update so authority dashboard shows updated count live
+      try {
+        emitToJurisdiction(existingSOS.state, existingSOS.district, "incident-updated", existingSOS);
+        emitToJurisdiction(existingSOS.state, existingSOS.district, "sos-alert", existingSOS);
+        try {
+          const ioInstance = getIO();
+          ioInstance.emit("incident-updated", existingSOS);
+          ioInstance.emit("sos-alert", existingSOS);
+        } catch (e) {}
+      } catch (sockErr) {
+        console.warn("Socket emission error on duplicate SOS:", sockErr.message);
+      }
 
       return res.status(200).json({
         success: true,
         isDuplicate: true,
-        message: "An active SOS alert has already been registered in your immediate vicinity. Responders are notified.",
+        message: `Existing SOS alert in your immediate vicinity updated. Total reports: ${existingSOS.reportCount}. Responders are notified.`,
         data: existingSOS,
         guestSessionId: req.guestSessionId || null,
       });
     }
 
-    // 2. Create Fresh SOS Incident
-    const userState = state || req.user?.state || "Unknown";
-    const userDistrict = district || req.user?.district || "Unknown";
+    // 2. Create Fresh SOS Incident with Auto-resolved Jurisdiction and Real Address
+    const resolved = await resolveDistrictAndState(coords);
+    const userState = state && state !== "Unknown" ? state : (resolved?.state || req.user?.state || "Uttar Pradesh");
+    const userDistrict = district && district !== "Unknown" ? district : (resolved?.district || req.user?.district || "Prayagraj");
+
+    const lng = Number(coords[0]);
+    const lat = Number(coords[1]);
+    const formattedCoords = `${lat.toFixed(5)}°N, ${lng.toFixed(5)}°E`;
+    const autoAddress =
+      req.body.address ||
+      resolved?.address ||
+      `GPS Fix: ${formattedCoords} (${userDistrict}, ${userState})`;
+    const sosTitle = `🚨 SOS: Emergency Beacon (${userDistrict} - ${formattedCoords})`;
 
     const incident = await Incident.create({
-      title: "SOS Emergency Alert",
-      description: "Emergency SOS triggered by citizen. Immediate attention required.",
+      title: sosTitle,
+      description: req.body.description || `Emergency SOS triggered by citizen. Exact GPS Coordinates: [${lat.toFixed(6)}, ${lng.toFixed(6)}]. Location: ${autoAddress}. Immediate tactical response required.`,
       type: type || "other",
       severity: "critical", // SOS is always critical priority
       status: "reported", // SOS stays reported until authority verification
       location: { type: "Point", coordinates: coords },
+      address: autoAddress,
       state: userState,
       district: userDistrict,
       isSOS: true,
+      reportCount: 1,
       reportedBy: req.user ? req.user._id : null,
       guestSessionId: req.guestSessionId || null,
-      priorityScore: 50,
+      priorityScore: 95,
       aiAnalysis: {
         status: "pending",
       },
@@ -904,6 +1050,14 @@ const createSOS = async (req, res) => {
       emitToJurisdiction(incident.state, incident.district, "sos-alert", incident);
       emitToJurisdiction(incident.state, incident.district, "new-incident", incident);
       emitToJurisdiction(incident.state, incident.district, "incident-created", incident);
+      emitToJurisdiction(incident.state, incident.district, "incident-updated", incident);
+      try {
+        const ioInstance = getIO();
+        ioInstance.emit("sos-alert", incident);
+        ioInstance.emit("new-incident", incident);
+        ioInstance.emit("incident-created", incident);
+        ioInstance.emit("incident-updated", incident);
+      } catch (e) {}
     } catch (sockErr) {
       console.error("Socket emission error on createSOS:", sockErr.message);
     }

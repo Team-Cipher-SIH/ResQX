@@ -64,6 +64,20 @@ export default function AuthorityLayout({ children }: { children: React.ReactNod
     return <>{children}</>;
   }
 
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  // Auto-collapse on split-screen or smaller displays
+  useEffect(() => {
+    const handleResize = () => {
+      if (typeof window !== 'undefined' && window.innerWidth < 1200) {
+        setSidebarCollapsed(true);
+      }
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   if (isLoading || !isAuthorized) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
@@ -77,8 +91,15 @@ export default function AuthorityLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <AuthoritySidebar />
-      <main className="ml-64 min-h-screen transition-all duration-300">
+      <AuthoritySidebar
+        collapsed={sidebarCollapsed}
+        onToggleCollapse={() => setSidebarCollapsed((prev) => !prev)}
+      />
+      <main
+        className={`min-h-screen transition-all duration-300 ${
+          sidebarCollapsed ? 'ml-16' : 'ml-64'
+        }`}
+      >
         {children}
       </main>
     </div>

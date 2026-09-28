@@ -33,9 +33,26 @@ interface NavItem {
   badge?: number;
 }
 
-export default function AuthoritySidebar() {
+export default function AuthoritySidebar({
+  collapsed: externalCollapsed,
+  onToggleCollapse,
+}: {
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
+} = {}) {
   const pathname = usePathname();
-  const [collapsed, setCollapsed] = useState(false);
+  const [internalCollapsed, setInternalCollapsed] = useState(false);
+  const isControlled = externalCollapsed !== undefined;
+  const collapsed = isControlled ? externalCollapsed : internalCollapsed;
+
+  const toggleCollapse = () => {
+    if (onToggleCollapse) {
+      onToggleCollapse();
+    } else {
+      setInternalCollapsed(!internalCollapsed);
+    }
+  };
+
   const [userName, setUserName] = useState('Officer');
   const [authorityLevel, setAuthorityLevel] = useState<string>('central');
   const [jurisdiction, setJurisdiction] = useState('');
@@ -293,7 +310,7 @@ export default function AuthoritySidebar() {
 
       {/* Collapse toggle */}
       <button
-        onClick={() => setCollapsed(!collapsed)}
+        onClick={toggleCollapse}
         className="absolute -right-3 top-20 p-1 bg-white border border-slate-200 rounded-full shadow-xs hover:bg-slate-50 hover:border-slate-300 transition-all duration-200 z-10"
       >
         {collapsed ? (
