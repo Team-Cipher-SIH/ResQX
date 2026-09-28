@@ -127,7 +127,10 @@ export default function IncidentManagementPage() {
 
   const handleVerify = async (id: string) => {
     try {
-      const res = await fetchFromApi(API_ENDPOINTS.VERIFY_INCIDENT(id), { method: 'PATCH' });
+      const res = await fetchFromApi(API_ENDPOINTS.VERIFY_INCIDENT(id), {
+        method: 'PATCH',
+        body: JSON.stringify({ note: 'Verified by Authority Officer' }),
+      });
       if (res.success) {
         fetchIncidents();
       } else {

@@ -332,7 +332,7 @@ const getMyIncidents = async (req, res) => {
 const verifyIncident = async (req, res) => {
   try {
     const { id } = req.params;
-    const { note } = req.body;
+    const { note } = req.body || {};
 
     if (!validateObjectId(id)) {
       return res.status(400).json({ success: false, message: "Invalid incident ID" });
@@ -365,6 +365,9 @@ const verifyIncident = async (req, res) => {
     // ALWAYS use authenticated user from token — NEVER trust req.body.verifiedBy
     incident.verifiedBy = req.user._id;
     incident.verifiedAt = new Date();
+    if (!Array.isArray(incident.statusHistory)) {
+      incident.statusHistory = [];
+    }
     incident.statusHistory.push({
       status: "verified",
       timestamp: new Date(),
@@ -413,7 +416,7 @@ const verifyIncident = async (req, res) => {
 const assignIncident = async (req, res) => {
   try {
     const { id } = req.params;
-    const { assignedTo, assignedDepartment, assignedTeam, note } = req.body;
+    const { assignedTo, assignedDepartment, assignedTeam, note } = req.body || {};
 
     if (!validateObjectId(id)) {
       return res.status(400).json({ success: false, message: "Invalid incident ID" });
@@ -554,7 +557,7 @@ const assignIncident = async (req, res) => {
 const updateIncidentStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, note } = req.body;
+    const { status, note } = req.body || {};
 
     if (!validateObjectId(id)) {
       return res.status(400).json({ success: false, message: "Invalid incident ID" });
