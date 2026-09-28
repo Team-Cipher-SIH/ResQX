@@ -1,0 +1,212 @@
+{
+  "info": {
+    "_postman_id": "resqtech-sih-2026-api-collection",
+    "name": "ResQtech (ResQX) — SIH 2026 API Collection",
+    "description": "Complete API testing suite for ResQtech AI-Powered Disaster Management & Civic Resilience Platform.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000/api",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "incidentId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "teamId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Authentication & Jurisdiction",
+      "item": [
+        {
+          "name": "Login - Pune District Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.accessToken) {",
+                  "    pm.collectionVariables.set('token', jsonData.accessToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"pune.admin@resqtech.gov.in\",\n  \"password\": \"Pune@12345\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          }
+        },
+        {
+          "name": "Login - Mumbai District Admin (Isolation Test)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"mumbai.admin@resqtech.gov.in\",\n  \"password\": \"Mumbai@12345\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Citizen SOS & Incident Reporting",
+      "item": [
+        {
+          "name": "Guest Emergency SOS (Protected, Non-blocking)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-guest-session-id", "value": "demo-guest-session-001" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"coordinates\": [73.8567, 18.5204],\n  \"type\": \"flood\",\n  \"state\": \"Maharashtra\",\n  \"district\": \"Pune\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/incidents/sos", "host": ["{{baseUrl}}"], "path": ["incidents", "sos"] }
+          }
+        },
+        {
+          "name": "Guest SOS - Reject [0, 0] Invalid GPS",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"coordinates\": [0, 0],\n  \"type\": \"flood\",\n  \"state\": \"Maharashtra\",\n  \"district\": \"Pune\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/incidents/sos", "host": ["{{baseUrl}}"], "path": ["incidents", "sos"] }
+          }
+        },
+        {
+          "name": "Get Public Live Map Incidents",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/incidents/public", "host": ["{{baseUrl}}"], "path": ["incidents", "public"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Smart Dispatch & Recommendations",
+      "item": [
+        {
+          "name": "Get Team Recommendations for Incident",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/dispatches/recommend/{{incidentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["dispatches", "recommend", "{{incidentId}}"]
+            }
+          }
+        },
+        {
+          "name": "Create Dispatch Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"incidentId\": \"{{incidentId}}\",\n  \"teamId\": \"{{teamId}}\",\n  \"notes\": \"Deploying NDRF boat unit immediately.\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/dispatches", "host": ["{{baseUrl}}"], "path": ["dispatches"] }
+          }
+        },
+        {
+          "name": "Get Active Dispatches",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/dispatches/active", "host": ["{{baseUrl}}"], "path": ["dispatches", "active"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Shelters & Relief Camps",
+      "item": [
+        {
+          "name": "Get All Shelters (Jurisdiction Filtered)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/shelters", "host": ["{{baseUrl}}"], "path": ["shelters"] }
+          }
+        },
+        {
+          "name": "Find Nearby Shelters (Geospatial)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/shelters/nearby?lng=73.8567&lat=18.5204&maxDistance=10000",
+              "host": ["{{baseUrl}}"],
+              "path": ["shelters", "nearby"],
+              "query": [
+                { "key": "lng", "value": "73.8567" },
+                { "key": "lat", "value": "18.5204" },
+                { "key": "maxDistance", "value": "10000" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Realtime Audit Logs",
+      "item": [
+        {
+          "name": "Get Audit Trail (Paginated)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/audit-logs?page=1&limit=20", "host": ["{{baseUrl}}"], "path": ["audit-logs"] }
+          }
+        },
+        {
+          "name": "Filter Audit Trail - Target Shelter",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/audit-logs?targetType=shelter", "host": ["{{baseUrl}}"], "path": ["audit-logs"] }
+          }
+        },
+        {
+          "name": "Filter Audit Trail - User Logins",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/audit-logs?action=user_login", "host": ["{{baseUrl}}"], "path": ["audit-logs"] }
+          }
+        }
+      ]
+    }
+  ]
+}

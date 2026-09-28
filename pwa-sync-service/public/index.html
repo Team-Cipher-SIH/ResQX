@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Disaster Offline Reporter</title>
+  <link rel="manifest" href="/manifest.json">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #0f172a;
+      color: #f8fafc;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 600px;
+      margin: auto;
+      background: #1e293b;
+      padding: 24px;
+      border-radius: 8px;
+    }
+    .status-badge {
+      display: inline-block;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-weight: bold;
+      font-size: 0.85rem;
+      margin-bottom: 16px;
+    }
+    .online { background-color: #16a34a; color: #fff; }
+    .offline { background-color: #dc2626; color: #fff; }
+    input, textarea, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 8px;
+      margin-bottom: 16px;
+      border-radius: 4px;
+      border: 1px solid #334155;
+      background: #0f172a;
+      color: #fff;
+      box-sizing: border-box;
+    }
+    button {
+      background-color: #2563eb;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      border: none;
+    }
+    button:hover { background-color: #1d4ed8; }
+    .report-card {
+      background: #334155;
+      padding: 12px;
+      border-radius: 6px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Disaster Report System</h2>
+    <div id="status" class="status-badge online">Checking Connection...</div>
+
+    <form id="reportForm">
+      <label>Title</label>
+      <input type="text" id="title" placeholder="e.g., Bridge Damaged" required>
+
+      <label>Description</label>
+      <textarea id="description" rows="3" placeholder="Describe the situation..." required></textarea>
+
+      <label>Location</label>
+      <input type="text" id="location" placeholder="e.g., Sector 9 Crossing">
+
+      <button type="submit">Submit Report</button>
+    </form>
+
+    <h3>Synced Database Reports</h3>
+    <div id="reportList">No reports loaded yet.</div>
+  </div>
+
+  <script src="/db.js"></script>
+  <script>
+    // Register Service Worker & Background Sync
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then((reg) => console.log('Service Worker Registered!', reg))
+        .catch((err) => console.error('Service Worker Registration Failed!', err));
+
+      navigator.serviceWorker.addEventListener('message', (event) => {
+        if (event.data && event.data.type === 'TRIGGER_SYNC') {
+          syncOfflineReports();
+        }
+      });
+    }
+
+    // Update Network Indicator Status
+    const statusDiv = document.getElementById('status');
+    function updateOnlineStatus() {
+      if (navigator.onLine) {
+        statusDiv.textContent = '● Online Mode';
+        statusDiv.className = 'status-badge online';
+      } else {
+        statusDiv.textContent = '● Offline Mode (Saving locally)';
+        statusDiv.className = 'status-badge offline';
+      }
+    }
+    window.addEventListener('online', updateOnlineStatus);
+    window.addEventListener('offline', updateOnlineStatus);
+    updateOnlineStatus();
+
+    // Fetch reports from Express API
+    window.fetchServerReports = async function() {
+      try {
+        const res = await fetch('/api/reports');
+        if (!res.ok) return;
+        const reports = await res.json();
+        const list = document.getElementById('reportList');
+        
+        if (reports.length === 0) {
+          list.innerHTML = '<p>No reports in database.</p>';
+          return;
+        }
+
+        list.innerHTML = reports.map(r => `
+          <div class="report-card">
+            <h4>${r.title}</h4>
+            <p>${r.description}</p>
+            <small>📍 ${r.location} | Synced: ${new Date(r.syncedAt).toLocaleString()}</small>
+          </div>
+        `).join('');
+      } catch (err) {
+        console.log("Unable to fetch reports from server (Offline)");
+      }
+    };
+
+    // Form submission handler with unique clientReportId
+    document.getElementById('reportForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const reportData = {
+        clientReportId: crypto.randomUUID(), // Har ek report ki unique Client ID
+        title: document.getElementById('title').value,
+        description: document.getElementById('description').value,
+        location: document.getElementById('location').value || 'Unknown',
+        offlineCreatedAppTimestamp: new Date().toISOString()
+      };
+
+      if (navigator.onLine) {
+        try {
+          await fetch('/api/reports/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(reportData)
+          });
+          alert('Report submitted directly to backend!');
+          fetchServerReports();
+        } catch (err) {
+          saveReportOffline(reportData);
+          alert('Backend unreachable. Saved report to IndexedDB!');
+        }
+      } else {
+        saveReportOffline(reportData);
+        alert('Offline! Report saved locally to IndexedDB. It will automatically sync when connection returns.');
+        
+        if ('serviceWorker' in navigator && 'SyncManager' in window) {
+          const reg = await navigator.serviceWorker.ready;
+          await reg.sync.register('sync-reports');
+        }
+      }
+
+      document.getElementById('reportForm').reset();
+    });
+
+    // Initial load
+    fetchServerReports();
+  </script>
+</body>
+</html>
